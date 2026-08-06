@@ -38,7 +38,6 @@ export default function Navbar() {
       { href: '/recurring', label: fa.nav.automations },
       { href: '/accounts', label: fa.nav.accounts },
       { href: '/payments', label: fa.nav.payments },
-      { href: '/junior', label: fa.nav.junior },
       { href: '/help', label: fa.settings.help },
     ],
     []

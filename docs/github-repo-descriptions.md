@@ -12,6 +12,12 @@ AI Financial Decision Copilot for Iranian SMEs — brings together invoices, che
 **Short (if character limit):**
 AI financial decision copilot for Iranian SMEs — cash flow, invoices, checks, in one view.
 
+**Description (فارسی):**
+پیش‌بین — دستیار هوشمند تصمیم‌گیری مالی برای کسب‌وکارهای کوچک و متوسط ایرانی؛ فاکتور، چک و رفتار پرداخت مشتری را در یک‌جا نشان می‌دهد و اثر تصمیم امروز را روی ۳۰ روز آینده جریان نقدی نمایان می‌کند.
+
+**Short (فارسی):**
+دستیار هوشمند مالی برای کسب‌وکارهای ایرانی — جریان نقدی، فاکتور و چک، در یک نگاه.
+
 **Topics (suggested):** `fintech` `sme` `cash-flow` `ai` `nextjs` `fastapi` `typescript` `tailwind`
 
 ---

@@ -2,7 +2,7 @@
 API router configuration.
 """
 from fastapi import APIRouter
-from app.api.v1 import auth, accounts, transactions, budgets, goals, dashboard, reports, junior, alerts, categories, banking_messages, payments, recurring, api_keys, backup
+from app.api.v1 import auth, accounts, transactions, budgets, goals, dashboard, reports, alerts, categories, banking_messages, payments, recurring, api_keys, backup
 
 api_router = APIRouter()
 
@@ -14,7 +14,6 @@ api_router.include_router(categories.router, prefix="/categories", tags=["catego
 api_router.include_router(transactions.router, prefix="/transactions", tags=["transactions"])
 api_router.include_router(budgets.router, prefix="/budgets", tags=["budgets"])
 api_router.include_router(goals.router, prefix="/goals", tags=["goals"])
-api_router.include_router(junior.router, prefix="/junior", tags=["junior-smart-savings"])
 api_router.include_router(alerts.router, prefix="/alerts", tags=["alerts"])
 api_router.include_router(dashboard.router, prefix="/dashboard", tags=["dashboard"])
 api_router.include_router(reports.router, prefix="/reports", tags=["reports"])

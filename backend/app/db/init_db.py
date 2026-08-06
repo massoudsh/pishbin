@@ -4,7 +4,7 @@ Database initialization script.
 from sqlalchemy.orm import Session
 from app.db.base import Base
 from app.db.session import engine, SessionLocal
-from app.models import user, account, transaction, budget, goal, category, junior, banking_message, payment, recurring  # noqa: F401
+from app.models import user, account, transaction, budget, goal, category, banking_message, payment, recurring  # noqa: F401
 from app.models.category import Category
 
 # Default cost/expense categories for banking and transactions

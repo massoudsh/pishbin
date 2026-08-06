@@ -1,217 +1,194 @@
-# Pishbin (پیش‌بین)
+# پیش‌بین (Pishbin)
 
 **کوپایلوت هوشمند تصمیم‌سازی مالی برای کسب‌وکارهای کوچک و متوسط ایرانی**
-**AI Financial Decision Copilot for Iranian SMEs**
 
-Pishbin brings together scattered financial data — invoices, checks, customer payment behavior — and shows the effect of today's decision on the next 30 days of cash flow, so the owner-operator of an Iranian SME doesn't have to be their own lonely CFO. Built with a FastAPI backend and Next.js frontend.
+پیش‌بین داده‌های مالی پراکنده — فاکتور، چک، رفتار پرداخت مشتری — را در یک‌جا کنار هم می‌گذارد و نشان می‌دهد تصمیم امروز چه تأثیری روی ۳۰ روز آینده جریان نقدی می‌گذارد؛ تا صاحب یک کسب‌وکار کوچک ایرانی مجبور نباشد خودش تنها CFO خودش باشد. بک‌اند با FastAPI و فرانت‌اند با Next.js ساخته شده است.
 
-## Features
+## امکانات
 
-- User authentication and authorization
-- Account management (checking, savings, credit cards, etc.)
-- Transaction tracking with categories
-- Budget management with spending tracking
-- Financial goals tracking
-- **Junior Smart Savings** — parent-controlled accounts for children: goal-based saving, automated deposits, progress tracking, rewards, and financial education
-- Dashboard with financial summaries
-- Reports and analytics
-- Expense forecasting
+- احراز هویت با JWT + **تأیید دومرحله‌ای (2FA)** با اپ Authenticator
+- **API Key** برای دسترسی برنامه‌نویسی/یکپارچه‌سازی
+- مدیریت حساب‌ها (جاری، پس‌انداز، کارت اعتباری و ...)
+- ثبت و دسته‌بندی تراکنش‌ها
+- بودجه‌بندی با پیگیری هزینه نسبت به بودجه
+- اهداف مالی و پیگیری پیشرفت
+- **پیام بانکی** — استخراج خودکار تراکنش از پیامک‌های بانکی
+- **تراکنش‌های تکرارشونده (Recurring)**
+- **پرداخت آنلاین با زرین‌پال**
+- هشدارها (Alerts) و پشتیبان‌گیری (Backup)
+- داشبورد با خلاصه وضعیت مالی، گزارش‌ها و تحلیل‌ها
+- پیش‌بینی هزینه‌ها
 
-## Tech Stack
+## پشته فناوری
 
-### Backend
-- FastAPI - Modern Python web framework
-- SQLAlchemy - ORM for database operations
-- PostgreSQL - Database
-- JWT - Authentication
-- Pydantic - Data validation
+### بک‌اند
+- FastAPI — فریم‌ورک وب پایتون
+- SQLAlchemy — ORM برای عملیات دیتابیس
+- PostgreSQL — دیتابیس
+- JWT + TOTP (2FA) — احراز هویت
+- Pydantic — اعتبارسنجی داده
 
-### Frontend
-- Next.js 14+ - React framework
-- TypeScript - Type safety
-- Tailwind CSS - Styling
-- Zod - Schema validation
-- Recharts - Data visualization
+### فرانت‌اند
+- Next.js 15+ — فریم‌ورک React
+- TypeScript — type safety
+- Tailwind CSS — استایل‌دهی
+- Zod — اعتبارسنجی schema
+- Recharts — نمایش داده
 
-## Getting Started
+## شروع کار
 
-### Prerequisites
+### پیش‌نیازها
 
 - Python 3.11+
 - Node.js 18+
-- PostgreSQL 15+ (or use Docker)
-- Docker and Docker Compose (optional)
+- PostgreSQL 15+ (یا از Docker استفاده کنید)
+- Docker و Docker Compose (اختیاری)
 
-### Backend Setup
+### راه‌اندازی بک‌اند
 
-1. Navigate to the backend directory:
+۱. ورود به پوشه backend:
 ```bash
 cd backend
 ```
 
-2. Create a virtual environment:
+۲. ساخت محیط مجازی:
 ```bash
 python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+source venv/bin/activate  # در ویندوز: venv\Scripts\activate
 ```
 
-3. Install dependencies:
+۳. نصب وابستگی‌ها:
 ```bash
 pip install -r requirements.txt
 ```
 
-4. Create a `.env` file in the backend directory (see `backend/.env.example`). **PostgreSQL is required.**
+۴. ساخت فایل `.env` در پوشه backend (نمونه: `backend/.env.example`). **PostgreSQL الزامی است.**
 ```env
 DATABASE_URL=postgresql://postgres:postgres@localhost:5432/personalfinance
 AUTO_CREATE_DB=true
 SECRET_KEY=your-secret-key-change-in-production
 DEBUG=true
 ```
-Ensure PostgreSQL is running and the database exists (e.g. `createdb personalfinance`).
+مطمئن شوید PostgreSQL در حال اجراست و دیتابیس ساخته شده (مثلاً `createdb personalfinance`).
 
-5. Initialize the database (choose one):
-   - **Quick start (create tables only):** `python -m app.db.init_db`
-   - **Production (Alembic migrations):**  
-     `alembic upgrade head`  
-     To create a new migration after model changes: `alembic revision --autogenerate -m "description"`
+۵. راه‌اندازی دیتابیس (یکی را انتخاب کنید):
+   - **شروع سریع (فقط ساخت جدول‌ها):** `python -m app.db.init_db`
+   - **حالت Production (مایگریشن با Alembic):**
+     `alembic upgrade head`
+     برای ساخت مایگریشن جدید بعد از تغییر مدل‌ها: `alembic revision --autogenerate -m "description"`
 
-6. Run the development server:
+۶. اجرای سرور توسعه:
 ```bash
 uvicorn app.main:app --reload
 ```
 
-The API will be available at `http://localhost:8000`
-API documentation at `http://localhost:8000/docs`
+API روی `http://localhost:8000` در دسترس است.
+مستندات API: `http://localhost:8000/docs`
 
-### Frontend Setup
+### راه‌اندازی فرانت‌اند
 
-1. Navigate to the frontend directory:
+۱. ورود به پوشه frontend:
 ```bash
 cd frontend
 ```
 
-2. Install dependencies:
+۲. نصب وابستگی‌ها:
 ```bash
 npm install
 ```
 
-3. Create a `.env.local` file:
+۳. ساخت فایل `.env.local`:
 ```env
 NEXT_PUBLIC_API_URL=http://localhost:8000/api/v1
 ```
 
-4. Run the development server:
+۴. اجرای سرور توسعه:
 ```bash
 npm run dev
 ```
 
-The frontend will be available at `http://localhost:3000`
+فرانت‌اند روی `http://localhost:3000` در دسترس است.
 
-### Docker Setup
+### راه‌اندازی با Docker
 
-1. Start all services:
+۱. اجرای همه سرویس‌ها:
 ```bash
 docker compose up -d --build
 ```
 
-2. Access the application:
+۲. دسترسی به برنامه:
    - Backend API: `http://localhost:8000`
-   - Frontend: `http://localhost:3000` (run separately with `cd frontend && npm run dev`; Docker Compose runs backend + Postgres only)
+   - Frontend: `http://localhost:3000` (جداگانه با `cd frontend && npm run dev` اجرا می‌شود؛ Docker Compose فقط backend و Postgres را اجرا می‌کند)
 
-For **production deployment** (env vars, CORS, migrations, health check, Docker prod override), see **[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)**.
+برای **استقرار در محیط production** (متغیرهای محیطی، CORS، مایگریشن، health check، override پروداکشن Docker) به **[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)** مراجعه کنید.
 
-## Project Structure
+## ساختار پروژه
 
 ```
 pishbin/
 ├── backend/
 │   ├── app/
-│   │   ├── api/v1/        # API endpoints
-│   │   ├── core/          # Core configuration
-│   │   ├── db/            # Database setup
-│   │   ├── models/        # SQLAlchemy models
-│   │   ├── schemas/        # Pydantic schemas
-│   │   └── services/      # Business logic
+│   │   ├── api/v1/        # endpoint های API
+│   │   ├── core/          # پیکربندی هسته
+│   │   ├── db/            # راه‌اندازی دیتابیس
+│   │   ├── models/        # مدل‌های SQLAlchemy
+│   │   ├── schemas/       # اسکیمای Pydantic
+│   │   └── services/      # منطق کسب‌وکار
 │   ├── requirements.txt
 │   └── Dockerfile
 ├── frontend/
-│   ├── app/               # Next.js app directory
-│   ├── components/        # React components
-│   └── lib/              # Utilities
-├── docs/                  # Documentation
+│   ├── app/               # پوشه app در Next.js
+│   ├── components/        # کامپوننت‌های React
+│   └── lib/               # ابزارهای کمکی
+├── docs/                  # مستندات
 └── docker-compose.yml
 ```
 
-## API Endpoints
+## Endpoint های API
 
-### Authentication
-- `POST /api/v1/auth/register` - Register a new user
-- `POST /api/v1/auth/login` - Login and get tokens
-- `POST /api/v1/auth/refresh` - Refresh access token
-- `GET /api/v1/auth/me` - Get current user info
+فهرست کامل تمام endpoint ها (احراز هویت، 2FA، API Key، حساب‌ها، تراکنش‌ها، بودجه، اهداف، تراکنش تکرارشونده، پیام بانکی، پرداخت زرین‌پال، هشدار، داشبورد، گزارش، بک‌آپ) در **[docs/API_SPEC.md](docs/API_SPEC.md)** آمده است.
 
-### Accounts
-- `GET /api/v1/accounts` - Get all accounts
-- `POST /api/v1/accounts` - Create account
-- `GET /api/v1/accounts/{id}` - Get account
-- `PUT /api/v1/accounts/{id}` - Update account
-- `DELETE /api/v1/accounts/{id}` - Delete account
+نمونه‌ای از مسیرهای اصلی:
 
-### Transactions
-- `GET /api/v1/transactions` - Get transactions (with filters)
-- `POST /api/v1/transactions` - Create transaction
-- `GET /api/v1/transactions/{id}` - Get transaction
-- `PUT /api/v1/transactions/{id}` - Update transaction
-- `DELETE /api/v1/transactions/{id}` - Delete transaction
+- `POST /api/v1/auth/register` — ثبت‌نام کاربر جدید
+- `POST /api/v1/auth/login` — ورود و دریافت توکن
+- `GET /api/v1/auth/me` — اطلاعات کاربر فعلی
+- `GET/POST /api/v1/accounts` — لیست/ساخت حساب
+- `GET/POST /api/v1/transactions` — لیست/ساخت تراکنش
+- `GET/POST /api/v1/budgets` — لیست/ساخت بودجه
+- `GET/POST /api/v1/goals` — لیست/ساخت هدف مالی
+- `GET/POST /api/v1/recurring` — تراکنش تکرارشونده
+- `POST /api/v1/banking-messages` — استخراج تراکنش از پیامک بانکی
+- `POST /api/v1/payments/*` — پرداخت زرین‌پال
+- `GET /api/v1/dashboard/summary` — خلاصه داشبورد
+- `GET /api/v1/reports/*` — گزارش‌ها
 
-### Budgets
-- `GET /api/v1/budgets` - Get all budgets
-- `POST /api/v1/budgets` - Create budget
-- `GET /api/v1/budgets/{id}` - Get budget with spending
-- `PUT /api/v1/budgets/{id}` - Update budget
-- `DELETE /api/v1/budgets/{id}` - Delete budget
+## توسعه
 
-### Goals
-- `GET /api/v1/goals` - Get all goals
-- `POST /api/v1/goals` - Create goal
-- `GET /api/v1/goals/{id}` - Get goal with progress
-- `PUT /api/v1/goals/{id}` - Update goal
-- `DELETE /api/v1/goals/{id}` - Delete goal
+نقشه‌راه توسعه فازبندی‌شده در [docs/PHASES.md](docs/PHASES.md) و از طریق [GitHub issues](https://github.com/massoudsh/pishbin/issues) پیگیری می‌شود. مسیرهای کاربری (flow های تراکنش، حساب، بودجه، هدف، احراز هویت) در [docs/USER_FLOWS.md](docs/USER_FLOWS.md) آمده است.
 
-### Dashboard
-- `GET /api/v1/dashboard/summary` - Get dashboard summary
-
-### Reports
-- `GET /api/v1/reports/expenses-by-category` - Expenses by category
-- `GET /api/v1/reports/income-vs-expenses` - Income vs expenses
-
-## Development
-
-Phased development is tracked in [docs/PHASES.md](docs/PHASES.md) and via [GitHub issues](https://github.com/massoudsh/pishbin/issues). User journeys (swimlane-style flows for transactions, accounts, budgets, goals, auth) are in [docs/USER_FLOWS.md](docs/USER_FLOWS.md).
-
-### Running Tests
+### اجرای تست‌ها
 ```bash
-# Backend tests
+# تست‌های بک‌اند
 cd backend
 pytest
 
-# Frontend tests
+# تست‌های فرانت‌اند
 cd frontend
 npm test
 ```
 
-### Code Formatting
+### فرمت‌دهی کد
 ```bash
-# Backend
+# بک‌اند
 black app/
 isort app/
 
-# Frontend
+# فرانت‌اند
 npm run lint
 npm run format
 ```
 
-## License
+## مجوز
 
 MIT
-

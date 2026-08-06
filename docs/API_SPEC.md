@@ -4,15 +4,21 @@
 `http://localhost:8000/api/v1`
 
 ## Authentication
-All endpoints except `/auth/register` and `/auth/login` require authentication via Bearer token.
+All endpoints except `/auth/register`, `/auth/login`, `/auth/refresh`, `/auth/forgot-password`, `/auth/reset-password`, `/auth/2fa/verify-login`, and the ZarinPal callback require authentication.
 
 ```
 Authorization: Bearer <access_token>
 ```
 
+Alternatively, programmatic clients can authenticate with an API key:
+
+```
+X-API-Key: pishbin_<key>
+```
+
 ## Endpoints
 
-### Authentication
+### Authentication (`/auth`)
 
 #### Register
 - **POST** `/auth/register`
@@ -28,70 +34,54 @@ Authorization: Bearer <access_token>
 
 #### Login
 - **POST** `/auth/login`
-- **Body:** (form-data)
-  - `username`: string
-  - `password`: string
-- **Response:**
+- **Body:** (form-data) `username`, `password`
+- **Response (no 2FA):**
 ```json
-{
-  "access_token": "token",
-  "refresh_token": "token",
-  "token_type": "bearer"
-}
+{ "access_token": "token", "refresh_token": "token", "token_type": "bearer" }
+```
+- **Response (2FA enabled):**
+```json
+{ "requires_2fa": true, "temp_token": "token" }
 ```
 
-#### Refresh Token
-- **POST** `/auth/refresh`
-- **Body:**
-```json
-{
-  "refresh_token": "token"
-}
-```
+#### Refresh token
+- **POST** `/auth/refresh` — body: `{ "refresh_token": "token" }`
 
-#### Get Current User
+#### Current user
 - **GET** `/auth/me`
-- **Headers:** Authorization Bearer token
+- **PATCH** `/auth/me` — partial update: `email`, `username`, `full_name`, `dashboard_preferences`
 
-### Accounts
+#### Password reset
+- **POST** `/auth/forgot-password` — body: `{ "email": "..." }`. Always returns success; sends a reset link by email if the account exists.
+- **POST** `/auth/reset-password` — body: `{ "token": "...", "new_password": "..." }`
 
-#### List Accounts
+#### Two-factor authentication
+- **GET** `/auth/2fa/setup` — returns `{ secret, provisioning_uri }` for a QR code
+- **POST** `/auth/2fa/enable` — body: `{ secret, code }`
+- **POST** `/auth/2fa/disable` — body: `{ password }`
+- **POST** `/auth/2fa/verify-login` — body: `{ temp_token, code }` → returns real tokens
+
+### API keys (`/api-keys`)
+- **GET** `/api-keys` — list current user's keys (no secrets)
+- **POST** `/api-keys` — body: `{ "name": "CI key" }`; response includes the plaintext key **once**: `{ id, name, key }`
+- **DELETE** `/api-keys/{key_id}` — revoke
+
+### Accounts (`/accounts`)
 - **GET** `/accounts?skip=0&limit=100`
-
-#### Get Account
 - **GET** `/accounts/{id}`
-
-#### Create Account
-- **POST** `/accounts`
-- **Body:**
-```json
-{
-  "name": "Checking Account",
-  "account_type": "checking",
-  "balance": 1000.00,
-  "currency": "USD",
-  "description": "Main checking account"
-}
-```
-
-#### Update Account
-- **PUT** `/accounts/{id}`
-- **Body:** (partial update)
-
-#### Delete Account
+- **POST** `/accounts` — body: `{ name, account_type, balance, currency, description }`
+- **PUT** `/accounts/{id}` — partial update
 - **DELETE** `/accounts/{id}`
 
-### Transactions
+### Categories (`/categories`)
+- **GET** `/categories` — list all
+- **POST** `/categories` — body: `{ name, description, color, icon }`. `400` if the name already exists.
+- **PUT** `/categories/{id}` — partial update
 
-#### List Transactions
-- **GET** `/transactions?skip=0&limit=100&account_id=1&category_id=2&start_date=2024-01-01&end_date=2024-12-31`
-
-#### Get Transaction
+### Transactions (`/transactions`)
+- **GET** `/transactions?skip=0&limit=100&account_id=&category_id=&start_date=&end_date=&q=&amount_min=&amount_max=`
 - **GET** `/transactions/{id}`
-
-#### Create Transaction
-- **POST** `/transactions`
-- **Body:**
+- **POST** `/transactions?force=false` — body:
 ```json
 {
   "account_id": 1,
@@ -103,74 +93,53 @@ Authorization: Bearer <access_token>
   "notes": "Weekly groceries"
 }
 ```
-
-#### Update Transaction
+  Returns `409` with `{ "detail": { "code": "possible_duplicate", "existing_id", "existing_date" } }` if a likely duplicate is found; pass `?force=true` to create anyway.
 - **PUT** `/transactions/{id}`
-
-#### Delete Transaction
 - **DELETE** `/transactions/{id}`
+- **GET** `/transactions/export?start_date=&end_date=` — CSV download
+- **POST** `/transactions/import?account_id=1` — multipart CSV upload; headers `date, amount, type, description`
 
-### Budgets
-
-#### List Budgets
+### Budgets (`/budgets`)
 - **GET** `/budgets?skip=0&limit=100`
-
-#### Get Budget
-- **GET** `/budgets/{id}` (includes spending info)
-
-#### Create Budget
-- **POST** `/budgets`
-- **Body:**
-```json
-{
-  "category_id": 2,
-  "name": "Monthly Groceries",
-  "amount": 500.00,
-  "period": "monthly",
-  "start_date": "2024-01-01",
-  "end_date": "2024-01-31"
-}
-```
-
-#### Update Budget
+- **GET** `/budgets/{id}` — includes spending info
+- **POST** `/budgets` — body: `{ category_id, name, amount, period, start_date, end_date }`
 - **PUT** `/budgets/{id}`
-
-#### Delete Budget
 - **DELETE** `/budgets/{id}`
 
-### Goals
-
-#### List Goals
+### Goals (`/goals`)
 - **GET** `/goals?skip=0&limit=100`
-
-#### Get Goal
-- **GET** `/goals/{id}` (includes progress info)
-
-#### Create Goal
-- **POST** `/goals`
-- **Body:**
-```json
-{
-  "name": "Emergency Fund",
-  "description": "Build 6 months emergency fund",
-  "goal_type": "savings",
-  "target_amount": 10000.00,
-  "current_amount": 2000.00,
-  "target_date": "2024-12-31"
-}
-```
-
-#### Update Goal
+- **GET** `/goals/{id}` — includes progress info
+- **POST** `/goals` — body: `{ name, description, goal_type, target_amount, current_amount, target_date }`
 - **PUT** `/goals/{id}`
-
-#### Delete Goal
 - **DELETE** `/goals/{id}`
 
-### Dashboard
+### Recurring transactions (`/recurring`)
+- **GET** `/recurring?limit=50`
+- **POST** `/recurring` — body: `{ account_id, category_id, amount, transaction_type, description, frequency, next_run_date }`
+- **GET** `/recurring/{id}`
+- **PATCH** `/recurring/{id}` — partial update
+- **DELETE** `/recurring/{id}`
+- **POST** `/recurring/run-now` — processes all due recurring transactions for the current user (`next_run_date <= today`), creates a transaction for each, and advances `next_run_date`. Returns `{ processed, created }`. Idempotent per run. Intended to be called from a cron job or manually.
 
-#### Get Summary
-- **GET** `/dashboard/summary`
-- **Response:**
+### Banking messages (`/banking-messages`)
+- **POST** `/banking-messages/parse` — body: `{ raw_text }`. Parses without saving; returns amount/date/description and an AI-suggested category.
+- **POST** `/banking-messages/` — save + parse a message
+- **GET** `/banking-messages/?limit=50`
+- **GET** `/banking-messages/{id}`
+- **POST** `/banking-messages/{id}/create-transaction` — body: `{ account_id, category_id }`; creates a transaction from the parsed message (category optional override)
+
+### Payments — ZarinPal (`/payments`)
+- **POST** `/payments/zarinpal/request` — body: `{ amount_rials, description, email, mobile }`; returns `{ payment_url, authority, amount_rials }`. `503` if the gateway is not configured.
+- **GET** `/payments/zarinpal/callback?Authority=&Status=` — ZarinPal redirects here; backend verifies and redirects to the frontend (`FRONTEND_URL/dashboard?payment=success|failed&...`)
+- **GET** `/payments?limit=50` — list current user's payments
+- **GET** `/payments/{id}`
+- **POST** `/payments/{id}/record-income` — body: `{ account_id }`; records a `completed` payment as an income transaction (`400` if not completed)
+
+### Alerts (`/alerts`)
+- **GET** `/alerts` — budget alerts for the current user (e.g. budgets at or over 80% spent)
+
+### Dashboard (`/dashboard`)
+- **GET** `/dashboard/summary`:
 ```json
 {
   "total_balance": 5000.00,
@@ -182,25 +151,25 @@ Authorization: Bearer <access_token>
   "recent_transactions": [...]
 }
 ```
+- **GET** `/dashboard/founder-overview` — KPIs, sparklines, burn-rate-style overview
+- **GET** `/dashboard/cash-summary-digest?days=30` — cash in/out, net, top 3 expense categories over the last N days (used for weekly digest emails / cron)
 
-### Reports
+### Reports (`/reports`)
+- **GET** `/reports/expenses-by-category?start_date=&end_date=`
+- **GET** `/reports/income-vs-expenses?start_date=&end_date=`
+- **GET** `/reports/insights` — period-over-period spending insights (this month vs. last, category trends)
 
-#### Expenses by Category
-- **GET** `/reports/expenses-by-category?start_date=2024-01-01&end_date=2024-12-31`
+### Backup (`/backup`)
+- **GET** `/backup` — export all user data (accounts, transactions, budgets, goals, recurring) as JSON
+- **POST** `/backup/restore?confirm=true` — multipart JSON file upload; validates `schema_version` and `user_id` match. **Full re-import is not yet implemented** — this endpoint currently only validates the file.
 
-#### Income vs Expenses
-- **GET** `/reports/income-vs-expenses?start_date=2024-01-01&end_date=2024-12-31`
-
-## Error Responses
-
+## Error responses
 All errors follow this format:
 ```json
-{
-  "detail": "Error message"
-}
+{ "detail": "Error message" }
 ```
 
-### Status Codes
+### Status codes
 - `200` - Success
 - `201` - Created
 - `204` - No Content
@@ -208,5 +177,6 @@ All errors follow this format:
 - `401` - Unauthorized
 - `403` - Forbidden
 - `404` - Not Found
+- `409` - Conflict (e.g. possible duplicate transaction)
 - `500` - Internal Server Error
-
+- `503` - Service Unavailable (e.g. ZarinPal not configured)
