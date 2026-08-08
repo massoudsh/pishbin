@@ -19,35 +19,35 @@ Create milestone **Phase 1 — Foundation** (and later Phase 2–5).
 **Body:**
 
 ### Goal
-Establish Nexus branding, app shell, auth flows, and a usable landing/dashboard.
+Establish Pishbin branding, app shell, auth flows, and a usable landing/dashboard.
 
 ### Tasks
-- [ ] Ensure app name "Nexus" and NX logo in layout, navbar, and metadata
+- [ ] Ensure app name "Pishbin" and logo in layout, navbar, and metadata
 - [ ] Login and register pages working with backend
 - [ ] Dashboard (authenticated and guest mode) with consistent layout
 - [ ] Responsive navbar and basic routing
 - [ ] Optional: simple landing page for `/` before redirect to dashboard
 
 ### Done when
-User can sign up, sign in, see dashboard with Nexus branding, and navigate main sections.
+User can sign up, sign in, see dashboard with Pishbin branding, and navigate main sections.
 
 ### Ref
 See `docs/PHASES.md` for full phase description.
 
 ---
 
-## Issue 2: Nexus branding and app shell
+## Issue 2: Pishbin branding and app shell
 
-**Title:** `[Phase 1] Nexus branding and app shell`
+**Title:** `[Phase 1] Pishbin branding and app shell`
 
 **Labels:** `phase-1`, `ui`
 
 **Body:**
 
-- Update all user-facing text and metadata to "Nexus".
-- Navbar: NX logo, "Nexus" title, primary color consistent with Tailwind theme.
-- Layout: title "Nexus", description "Personal finance, simplified."
-- Ensure `nexus-frontend` in package.json and backend `APP_NAME` = "Nexus API".
+- Update all user-facing text and metadata to "Pishbin".
+- Navbar: logo, "Pishbin" title, primary color consistent with Tailwind theme.
+- Layout: title "Pishbin", description "Personal finance, simplified."
+- Ensure `pishbin-frontend` in package.json and backend `APP_NAME` = "Pishbin API".
 
 Parent: Phase 1 epic.
 
@@ -61,7 +61,7 @@ Parent: Phase 1 epic.
 
 **Body:**
 
-- Login and register pages must work with Nexus API.
+- Login and register pages must work with Pishbin API.
 - Store tokens (e.g. access + refresh), handle 401 and redirect to login when needed.
 - After login/register, redirect to dashboard.
 - Show "Guest" when not authenticated and allow exploring dashboard in guest mode.

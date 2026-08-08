@@ -24,9 +24,9 @@ Development is organized in phases. Each phase is tracked via GitHub issues and 
 
 ## Phase 1 — Foundation
 
-- **Goal:** Nexus branding, app shell, auth flows, and a usable landing/dashboard shell.
-- **Scope:** App name "Nexus" and NX logo; login and register; dashboard (authenticated and guest mode); responsive navbar and routing.
-- **Done when:** User can sign up, sign in, see dashboard with Nexus branding, and navigate main sections.
+- **Goal:** Pishbin branding, app shell, auth flows, and a usable landing/dashboard shell.
+- **Scope:** App name "Pishbin" and logo; login and register; dashboard (authenticated and guest mode); responsive navbar and routing.
+- **Done when:** User can sign up, sign in, see dashboard with Pishbin branding, and navigate main sections.
 
 ## Phase 2 — Core data
 
