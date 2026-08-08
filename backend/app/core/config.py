@@ -63,12 +63,23 @@ class Settings(BaseSettings):
     EMAIL_ENABLED: bool = False  # set True when SMTP_* are set
 
     @model_validator(mode="after")
-    def _check_secret_key(self) -> "Settings":
-        insecure = "your-secret-key-change-in-production"
-        if not self.DEBUG and self.SECRET_KEY == insecure:
+    def _check_secure_production_config(self) -> "Settings":
+        if self.DEBUG:
+            return self
+
+        errors = []
+        insecure_secret = "your-secret-key-change-in-production"
+        if self.SECRET_KEY == insecure_secret:
+            errors.append("SECRET_KEY must be changed from the default value")
+
+        insecure_db = "postgresql://postgres:postgres@localhost:5432/personalfinance"
+        if self.DATABASE_URL == insecure_db:
+            errors.append("DATABASE_URL must be changed from the default postgres/postgres value")
+
+        if errors:
             raise ValueError(
-                "SECRET_KEY must be changed from the default value before running in production. "
-                "Set DEBUG=true to bypass this check in development."
+                "; ".join(errors)
+                + ". Set DEBUG=true to bypass this check in development."
             )
         return self
 

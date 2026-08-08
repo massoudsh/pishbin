@@ -64,12 +64,15 @@ pip install -r requirements.txt
 
 ۴. ساخت فایل `.env` در پوشه backend (نمونه: `backend/.env.example`). **PostgreSQL الزامی است.**
 ```env
+# فقط برای dev محلی — این مقادیر default هرگز نباید در production استفاده شوند
 DATABASE_URL=postgresql://postgres:postgres@localhost:5432/personalfinance
 AUTO_CREATE_DB=true
 SECRET_KEY=your-secret-key-change-in-production
 DEBUG=true
 ```
 مطمئن شوید PostgreSQL در حال اجراست و دیتابیس ساخته شده (مثلاً `createdb personalfinance`).
+
+> **Production:** `DEBUG=false`, `SECRET_KEY` و `DATABASE_URL` واقعی الزامی است — اگر این مقادیر default باقی بمانند، اپلیکیشن در startup fail می‌کند (`app/core/config.py`).
 
 ۵. راه‌اندازی دیتابیس (یکی را انتخاب کنید):
    - **شروع سریع (فقط ساخت جدول‌ها):** `python -m app.db.init_db`
