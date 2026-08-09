@@ -552,6 +552,40 @@ class ApiClient {
     return response.data;
   }
 
+  /** Reconcile a bank statement CSV against existing transactions for an account. */
+  async reconcileBankStatement(file: File, accountId: number, windowDays = 3): Promise<{
+    account_id: number;
+    total_rows: number;
+    matched_count: number;
+    unmatched_count: number;
+    matches: Array<{
+      row_index: number;
+      statement_date: string;
+      statement_amount: string;
+      statement_description: string | null;
+      transaction_id: number;
+      transaction_date: string;
+    }>;
+    unmatched: Array<{
+      row_index: number;
+      statement_date: string;
+      statement_amount: string;
+      statement_type: string;
+      statement_description: string | null;
+      reason: string;
+    }>;
+    row_errors: string[];
+  }> {
+    const form = new FormData();
+    form.append('file', file);
+    const response = await this.client.post(
+      `/reconciliation/bank-statement?account_id=${accountId}&window_days=${windowDays}`,
+      form,
+      { headers: { 'Content-Type': 'multipart/form-data' } },
+    );
+    return response.data;
+  }
+
 }
 
 export const apiClient = new ApiClient();

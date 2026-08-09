@@ -139,6 +139,18 @@ Cheque tracking (issued and received) as a first-class entity, with Sayad tracki
 - **DELETE** `/checks/{id}` — `400` if the cheque is already `cleared`/`bounced` (void it instead, to preserve the audit trail)
 - **GET** `/checks/cash-flow-forecast?days=30` — pending cheques due within the window, as known-amount cash events: `{ days, events: [{ check_id, due_date, direction, amount, counterparty_name }], total_inflow, total_outflow, net }`
 
+### Reconciliation (`/reconciliation`)
+Automated matching of an uploaded bank statement against transactions already recorded in the system (read-only — never creates, updates, or deletes a transaction).
+- **POST** `/reconciliation/bank-statement?account_id={id}&window_days=3` — multipart form upload, field `file` (CSV, headers `date,amount,type,description`; `type` = `income`|`expense`). `404` if `account_id` doesn't belong to the current user. `400` if the file isn't a `.csv` or has no data rows. Matches each statement row to an unused transaction with the same account, type and exact amount, whose date is within `window_days` (0–30, default 3) of the statement date; each transaction can satisfy at most one row per run. Returns:
+  ```
+  {
+    account_id, total_rows, matched_count, unmatched_count,
+    matches: [{ row_index, statement_date, statement_amount, statement_description, transaction_id, transaction_date }],
+    unmatched: [{ row_index, statement_date, statement_amount, statement_type, statement_description, reason }],
+    row_errors: [string]  // unparsable rows (bad date/amount/type), reported separately from unmatched
+  }
+  ```
+
 ### Banking messages (`/banking-messages`)
 - **POST** `/banking-messages/parse` — body: `{ raw_text }`. Parses without saving; returns amount/date/description and an AI-suggested category.
 - **POST** `/banking-messages/` — save + parse a message
