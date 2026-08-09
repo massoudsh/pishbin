@@ -35,6 +35,7 @@ from app.schemas.user import (
     TwoFactorVerifyLoginRequest,
 )
 from app.models.user import User as UserModel
+from app.models.business import Business as BusinessModel
 from app.dependencies import get_current_user
 import pyotp
 
@@ -69,7 +70,16 @@ async def register(user_data: UserCreate, db: Session = Depends(get_db)):
     db.add(db_user)
     db.commit()
     db.refresh(db_user)
-    
+
+    # Every new user gets a default business/workspace to own their accounts.
+    default_business = BusinessModel(
+        owner_id=db_user.id,
+        name=user_data.full_name or user_data.username,
+        is_default=True,
+    )
+    db.add(default_business)
+    db.commit()
+
     return db_user
 
 

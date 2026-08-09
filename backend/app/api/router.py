@@ -2,13 +2,14 @@
 API router configuration.
 """
 from fastapi import APIRouter
-from app.api.v1 import auth, accounts, transactions, budgets, goals, dashboard, reports, alerts, categories, banking_messages, payments, recurring, api_keys, backup
+from app.api.v1 import auth, accounts, businesses, transactions, budgets, goals, dashboard, reports, alerts, categories, banking_messages, payments, recurring, api_keys, backup
 
 api_router = APIRouter()
 
 # Include all API endpoints
 api_router.include_router(auth.router, prefix="/auth", tags=["authentication"])
 api_router.include_router(api_keys.router, prefix="/api-keys", tags=["api-keys"])
+api_router.include_router(businesses.router, prefix="/businesses", tags=["businesses"])
 api_router.include_router(accounts.router, prefix="/accounts", tags=["accounts"])
 api_router.include_router(categories.router, prefix="/categories", tags=["categories"])
 api_router.include_router(transactions.router, prefix="/transactions", tags=["transactions"])

@@ -1,16 +1,7 @@
 """
 API endpoint tests using FastAPI TestClient.
 """
-import pytest
 from fastapi.testclient import TestClient
-
-from app.main import app
-
-
-@pytest.fixture
-def client():
-    """Test client that uses the app without starting a server."""
-    return TestClient(app)
 
 
 def test_root(client: TestClient):

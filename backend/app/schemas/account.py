@@ -12,6 +12,7 @@ Money = condecimal(max_digits=10, decimal_places=2)
 
 class AccountBase(BaseModel):
     """Base account schema."""
+    business_id: int
     name: str = Field(..., min_length=1, max_length=100)
     account_type: AccountType
     balance: Money = Decimal("0.00")

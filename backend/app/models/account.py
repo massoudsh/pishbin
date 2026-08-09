@@ -24,6 +24,7 @@ class Account(Base):
     
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    business_id = Column(Integer, ForeignKey("businesses.id"), nullable=False, index=True)
     name = Column(String, nullable=False)
     account_type = Column(Enum(AccountType), nullable=False)
     balance = Column(Numeric(10, 2), default=0.00, nullable=False)
@@ -35,6 +36,7 @@ class Account(Base):
     
     # Relationships
     user = relationship("User", back_populates="accounts")
+    business = relationship("Business", back_populates="accounts")
     transactions = relationship("Transaction", back_populates="account", cascade="all, delete-orphan")
     recurring_transactions = relationship("RecurringTransaction", back_populates="account")
 

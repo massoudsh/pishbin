@@ -66,10 +66,19 @@ X-API-Key: pishbin_<key>
 - **POST** `/api-keys` — body: `{ "name": "CI key" }`; response includes the plaintext key **once**: `{ id, name, key }`
 - **DELETE** `/api-keys/{key_id}` — revoke
 
+### Businesses (`/businesses`)
+Multi-business/multi-branch workspaces. Every user gets one default business automatically on register. Accounts always belong to a business.
+- **GET** `/businesses` — list current user's businesses
+- **GET** `/businesses/{id}`
+- **POST** `/businesses` — body: `{ name, description }`. The user's first business is automatically the default.
+- **PUT** `/businesses/{id}` — partial update
+- **POST** `/businesses/{id}/set-default` — switch the active/default business
+- **DELETE** `/businesses/{id}` — `400` if it's the user's only business or still has accounts
+
 ### Accounts (`/accounts`)
-- **GET** `/accounts?skip=0&limit=100`
+- **GET** `/accounts?business_id=&skip=0&limit=100` — optionally filter by business
 - **GET** `/accounts/{id}`
-- **POST** `/accounts` — body: `{ name, account_type, balance, currency, description }`
+- **POST** `/accounts` — body: `{ business_id, name, account_type, balance, currency, description }`. `404` if `business_id` doesn't belong to the current user.
 - **PUT** `/accounts/{id}` — partial update
 - **DELETE** `/accounts/{id}`
 

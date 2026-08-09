@@ -2,6 +2,7 @@
 Models package initialization.
 """
 from app.models.user import User
+from app.models.business import Business
 from app.models.account import Account
 from app.models.transaction import Transaction
 from app.models.budget import Budget
@@ -13,7 +14,7 @@ from app.models.recurring import RecurringTransaction
 from app.models.api_key import ApiKey
 
 __all__ = [
-    "User", "Account", "Transaction", "Budget", "Goal", "Category",
+    "User", "Business", "Account", "Transaction", "Budget", "Goal", "Category",
     "BankingMessage", "Payment", "RecurringTransaction", "ApiKey",
 ]
 

@@ -13,11 +13,18 @@ class AccountsService:
     def __init__(self, db: Session):
         self.db = db
     
-    def get_user_accounts(self, user_id: int, skip: int = 0, limit: int = 100) -> List[Account]:
-        """Get all accounts for a user."""
-        return self.db.query(Account).filter(
-            Account.user_id == user_id
-        ).offset(skip).limit(limit).all()
+    def get_user_accounts(
+        self,
+        user_id: int,
+        business_id: Optional[int] = None,
+        skip: int = 0,
+        limit: int = 100,
+    ) -> List[Account]:
+        """Get all accounts for a user, optionally filtered by business."""
+        query = self.db.query(Account).filter(Account.user_id == user_id)
+        if business_id is not None:
+            query = query.filter(Account.business_id == business_id)
+        return query.offset(skip).limit(limit).all()
     
     def get_account(self, account_id: int, user_id: int) -> Optional[Account]:
         """Get a specific account by ID."""

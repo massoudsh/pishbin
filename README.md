@@ -156,7 +156,8 @@ pishbin/
 - `POST /api/v1/auth/register` — ثبت‌نام کاربر جدید
 - `POST /api/v1/auth/login` — ورود و دریافت توکن
 - `GET /api/v1/auth/me` — اطلاعات کاربر فعلی
-- `GET/POST /api/v1/accounts` — لیست/ساخت حساب
+- `GET/POST /api/v1/businesses` — لیست/ساخت کسب‌وکار (چند شعبه/کسب‌وکار)، `POST /api/v1/businesses/{id}/set-default` برای سوییچ
+- `GET/POST /api/v1/accounts` — لیست/ساخت حساب (هر حساب متعلق به یک کسب‌وکار است)
 - `GET/POST /api/v1/transactions` — لیست/ساخت تراکنش
 - `GET/POST /api/v1/budgets` — لیست/ساخت بودجه
 - `GET/POST /api/v1/goals` — لیست/ساخت هدف مالی
