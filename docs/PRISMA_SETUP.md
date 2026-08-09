@@ -40,13 +40,13 @@ Prisma is integrated in the **frontend** (Next.js) for server-side access to a P
 
 ## Schema and mock data
 
-- **Schema:** `frontend/prisma/schema.prisma` — all entities (User, Account, Category, Transaction, Budget, Goal, JuniorProfile, JuniorGoal, AutomatedDeposit, Reward, BankingMessage, Payment, RecurringTransaction) and relations; no duplicate field names.
+- **Schema:** `frontend/prisma/schema.prisma` — all entities (User, Account, Category, Transaction, Budget, Goal, BankingMessage, Payment, RecurringTransaction) and relations; no duplicate field names.
 - **Seed:** `frontend/prisma/seed.ts` — one-off mock data for every model and relations (unique emails/usernames, no duplicate rows).
 - **Client:** `frontend/lib/prisma.ts` — singleton Prisma client for server-side use.
 
 ## Example usage
 
-- **API route:** `GET /api/prisma-mock` uses Prisma to return counts and a sample user with accounts and junior profiles (verifies connection and relations).
+- **API route:** `GET /api/prisma-mock` uses Prisma to return counts and a sample user with accounts (verifies connection and relations).
 - **Server components or API routes:** import `prisma` from `@/lib/prisma` and run queries.
 
 ## Notes

@@ -8,10 +8,6 @@ import { PrismaClient } from '@prisma/client'
 const prisma = new PrismaClient()
 
 async function main() {
-  await prisma.reward.deleteMany()
-  await prisma.automatedDeposit.deleteMany()
-  await prisma.juniorGoal.deleteMany()
-  await prisma.juniorProfile.deleteMany()
   await prisma.bankingMessage.deleteMany()
   await prisma.payment.deleteMany()
   await prisma.recurringTransaction.deleteMany()
@@ -169,68 +165,6 @@ async function main() {
     },
   })
 
-  const jProfile = await prisma.juniorProfile.create({
-    data: {
-      parent_id: user1.id,
-      name: 'علی',
-      balance: 150,
-      currency: 'USD',
-      allowance_amount: 20,
-      birth_date: new Date('2015-03-15'),
-      is_active: true,
-    },
-  })
-
-  await prisma.juniorGoal.create({
-    data: {
-      junior_profile_id: jProfile.id,
-      name: 'دوچرخه جدید',
-      target_amount: 200,
-      current_amount: 80,
-      target_date: new Date('2026-05-01'),
-      status: 'active',
-      parent_approved: true,
-    },
-  })
-  await prisma.juniorGoal.create({
-    data: {
-      junior_profile_id: jProfile.id,
-      name: 'کتاب‌های مدرسه',
-      target_amount: 50,
-      current_amount: 0,
-      status: 'pending_approval',
-      parent_approved: false,
-    },
-  })
-
-  await prisma.automatedDeposit.create({
-    data: {
-      source_account_id: acc1.id,
-      junior_profile_id: jProfile.id,
-      amount: 20,
-      frequency: 'weekly',
-      next_run_date: new Date('2025-11-25'),
-      is_active: true,
-    },
-  })
-
-  await prisma.reward.create({
-    data: {
-      junior_profile_id: jProfile.id,
-      reward_type: 'first_save',
-      title: 'اولین پس‌انداز',
-      achieved_at: new Date('2025-10-01T12:00:00Z'),
-    },
-  })
-  await prisma.reward.create({
-    data: {
-      junior_profile_id: jProfile.id,
-      reward_type: 'custom',
-      title: 'تکمیل تکالیف هفته',
-      achieved_at: new Date('2025-11-10T18:00:00Z'),
-    },
-  })
-
   await prisma.bankingMessage.create({
     data: {
       user_id: user1.id,
@@ -302,7 +236,7 @@ async function main() {
     },
   })
 
-  console.log('Seed completed: users, categories, accounts, transactions, budgets, goals, junior profiles/goals/deposits/rewards, banking_messages, payments, recurring_transactions.')
+  console.log('Seed completed: users, categories, accounts, transactions, budgets, goals, banking_messages, payments, recurring_transactions.')
 }
 
 main()

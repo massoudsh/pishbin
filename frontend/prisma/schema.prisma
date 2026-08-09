@@ -53,30 +53,6 @@ enum RecurrenceFrequency {
   yearly
 }
 
-enum DepositFrequency {
-  weekly
-  biweekly
-  monthly
-}
-
-enum JuniorGoalStatus {
-  pending_approval
-  active
-  completed
-  cancelled
-}
-
-enum RewardType {
-  first_save
-  first_goal
-  five_goals
-  ten_percent
-  halfway
-  goal_achiever
-  consistent_saver
-  custom
-}
-
 model User {
   id             Int       @id @default(autoincrement())
   email          String    @unique
@@ -92,7 +68,6 @@ model User {
   transactions        Transaction[]
   budgets             Budget[]
   goals               Goal[]
-  junior_profiles     JuniorProfile[]
   banking_messages   BankingMessage[]
   payments            Payment[]
   recurring_transactions RecurringTransaction[]
@@ -131,7 +106,6 @@ model Account {
   user                  User                 @relation(fields: [user_id], references: [id], onDelete: Cascade)
   transactions          Transaction[]
   recurring_transactions RecurringTransaction[]
-  automated_deposits_out AutomatedDeposit[]
 
   @@map("accounts")
 }
@@ -192,75 +166,6 @@ model Goal {
   user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
   @@map("goals")
-}
-
-model JuniorProfile {
-  id               Int       @id @default(autoincrement())
-  parent_id        Int
-  name             String
-  balance          Decimal   @default(0) @db.Decimal(10, 2)
-  currency         String    @default("USD")
-  allowance_amount Decimal?  @db.Decimal(10, 2)
-  birth_date       DateTime? @db.Date
-  avatar_url       String?
-  is_active        Boolean   @default(true)
-  created_at       DateTime  @default(now())
-  updated_at       DateTime? @updatedAt
-
-  parent            User             @relation(fields: [parent_id], references: [id], onDelete: Cascade)
-  goals             JuniorGoal[]
-  automated_deposits AutomatedDeposit[]
-  rewards           Reward[]
-
-  @@map("junior_profiles")
-}
-
-model JuniorGoal {
-  id                Int              @id @default(autoincrement())
-  junior_profile_id Int
-  name              String
-  target_amount     Decimal          @db.Decimal(10, 2)
-  current_amount    Decimal          @default(0) @db.Decimal(10, 2)
-  target_date       DateTime?        @db.Date
-  status            JuniorGoalStatus @default(pending_approval)
-  parent_approved   Boolean          @default(false)
-  created_at        DateTime         @default(now())
-  updated_at        DateTime?        @updatedAt
-
-  junior_profile JuniorProfile @relation(fields: [junior_profile_id], references: [id], onDelete: Cascade)
-
-  @@map("junior_goals")
-}
-
-model AutomatedDeposit {
-  id                Int               @id @default(autoincrement())
-  source_account_id Int
-  junior_profile_id Int
-  amount            Decimal           @db.Decimal(10, 2)
-  frequency         DepositFrequency
-  next_run_date     DateTime          @db.Date
-  last_run_at       DateTime?
-  is_active         Boolean           @default(true)
-  created_at        DateTime          @default(now())
-  updated_at        DateTime?         @updatedAt
-
-  source_account  Account       @relation(fields: [source_account_id], references: [id], onDelete: Cascade)
-  junior_profile  JuniorProfile @relation(fields: [junior_profile_id], references: [id], onDelete: Cascade)
-
-  @@map("automated_deposits")
-}
-
-model Reward {
-  id                Int        @id @default(autoincrement())
-  junior_profile_id Int
-  reward_type       RewardType
-  title             String?
-  achieved_at       DateTime   @default(now())
-  created_at        DateTime   @default(now())
-
-  junior_profile JuniorProfile @relation(fields: [junior_profile_id], references: [id], onDelete: Cascade)
-
-  @@map("rewards")
 }
 
 model BankingMessage {

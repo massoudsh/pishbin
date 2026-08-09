@@ -7,18 +7,16 @@ import { prisma } from '@/lib/prisma'
 
 export async function GET() {
   try {
-    const [userCount, accountCount, categoryCount, transactionCount, juniorProfileCount] = await Promise.all([
+    const [userCount, accountCount, categoryCount, transactionCount] = await Promise.all([
       prisma.user.count(),
       prisma.account.count(),
       prisma.category.count(),
       prisma.transaction.count(),
-      prisma.juniorProfile.count(),
     ])
 
     const sampleUser = await prisma.user.findFirst({
       include: {
         accounts: { select: { id: true, name: true, balance: true, account_type: true } },
-        junior_profiles: { select: { id: true, name: true, balance: true } },
       },
     })
 
@@ -30,7 +28,6 @@ export async function GET() {
         accounts: accountCount,
         categories: categoryCount,
         transactions: transactionCount,
-        junior_profiles: juniorProfileCount,
       },
       sample_user: sampleUser
         ? {
@@ -39,7 +36,6 @@ export async function GET() {
             username: sampleUser.username,
             full_name: sampleUser.full_name,
             accounts: sampleUser.accounts,
-            junior_profiles: sampleUser.junior_profiles,
           }
         : null,
     })
