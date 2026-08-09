@@ -39,6 +39,11 @@ export const MOCK_RECURRING = [
   { id: 2, account_id: 1, amount: 3_500_000, transaction_type: 'expense', description: 'اجاره', frequency: 'monthly', next_run_date: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], is_active: 1 },
 ]
 
+export const MOCK_CHECKS = [
+  { id: 1, account_id: 1, direction: 'received' as const, counterparty_name: 'شرکت الف', amount: 5_000_000, bank_name: 'بانک ملت', check_number: null, sayad_id: null, due_date: new Date(Date.now() + 12 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], status: 'pending' as const, description: null },
+  { id: 2, account_id: 1, direction: 'issued' as const, counterparty_name: 'تامین‌کننده ب', amount: 2_500_000, bank_name: 'بانک ملی', check_number: null, sayad_id: null, due_date: new Date(Date.now() + 20 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], status: 'pending' as const, description: null },
+]
+
 export const MOCK_EXPENSES_BY_CATEGORY = [
   { category_id: 1, total: 3_200_000, name: 'خوراک' },
   { category_id: 2, total: 1_100_000, name: 'حمل‌ونقل' },

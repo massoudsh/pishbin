@@ -36,6 +36,7 @@ export default function Navbar() {
       { href: '/reports', label: fa.nav.reports },
       { href: '/investors', label: fa.nav.investors },
       { href: '/recurring', label: fa.nav.automations },
+      { href: '/checks', label: fa.nav.checks },
       { href: '/accounts', label: fa.nav.accounts },
       { href: '/payments', label: fa.nav.payments },
       { href: '/help', label: fa.settings.help },

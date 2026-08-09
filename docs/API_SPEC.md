@@ -130,6 +130,15 @@ Multi-business/multi-branch workspaces. Every user gets one default business aut
 - **DELETE** `/recurring/{id}`
 - **POST** `/recurring/run-now` — processes all due recurring transactions for the current user (`next_run_date <= today`), creates a transaction for each, and advances `next_run_date`. Returns `{ processed, created }`. Idempotent per run. Intended to be called from a cron job or manually.
 
+### Checks (`/checks`)
+Cheque tracking (issued and received) as a first-class entity, with Sayad tracking number support (status inquiry against the Sayad system itself is a future phase).
+- **GET** `/checks?status_filter=&account_id=` — list current user's cheques, sorted by due date
+- **GET** `/checks/{id}`
+- **POST** `/checks` — body: `{ account_id, direction: "issued"|"received", counterparty_name, amount, bank_name?, check_number?, sayad_id?, due_date, description? }`. `404` if `account_id` doesn't belong to the current user.
+- **PUT** `/checks/{id}` — partial update, incl. `status: "pending"|"cleared"|"bounced"|"voided"`
+- **DELETE** `/checks/{id}` — `400` if the cheque is already `cleared`/`bounced` (void it instead, to preserve the audit trail)
+- **GET** `/checks/cash-flow-forecast?days=30` — pending cheques due within the window, as known-amount cash events: `{ days, events: [{ check_id, due_date, direction, amount, counterparty_name }], total_inflow, total_outflow, net }`
+
 ### Banking messages (`/banking-messages`)
 - **POST** `/banking-messages/parse` — body: `{ raw_text }`. Parses without saving; returns amount/date/description and an AI-suggested category.
 - **POST** `/banking-messages/` — save + parse a message

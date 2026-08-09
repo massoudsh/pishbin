@@ -391,6 +391,60 @@ class ApiClient {
     await this.client.delete(`/recurring/${id}`);
   }
 
+  // Checks (cheques)
+  async getChecks(params?: { status_filter?: string; account_id?: number }) {
+    const response = await this.client.get('/checks', { params });
+    return response.data as Array<{
+      id: number;
+      account_id: number;
+      direction: 'issued' | 'received';
+      counterparty_name: string;
+      amount: number;
+      bank_name: string | null;
+      check_number: string | null;
+      sayad_id: string | null;
+      due_date: string;
+      status: 'pending' | 'cleared' | 'bounced' | 'voided';
+      description: string | null;
+      created_at: string | null;
+    }>;
+  }
+
+  async createCheck(data: {
+    account_id: number;
+    direction: 'issued' | 'received';
+    counterparty_name: string;
+    amount: number;
+    bank_name?: string;
+    check_number?: string;
+    sayad_id?: string;
+    due_date: string;
+    description?: string;
+  }) {
+    const response = await this.client.post('/checks', data);
+    return response.data;
+  }
+
+  async updateCheck(id: number, data: Partial<{ status: string; direction: string; counterparty_name: string; amount: number; bank_name: string; check_number: string; sayad_id: string; due_date: string; description: string }>) {
+    const response = await this.client.put(`/checks/${id}`, data);
+    return response.data;
+  }
+
+  async deleteCheck(id: number) {
+    await this.client.delete(`/checks/${id}`);
+  }
+
+  async getCheckCashFlowForecast(days = 30) {
+    const response = await this.client.get('/checks/cash-flow-forecast', { params: { days } });
+    return response.data as {
+      days: number;
+      events: Array<{ check_id: number; due_date: string; direction: string; amount: number; counterparty_name: string }>;
+      total_inflow: number;
+      total_outflow: number;
+      net: number;
+    };
+  }
+
   // Budget endpoints
   async getBudgets() {
     const response = await this.client.get('/budgets');

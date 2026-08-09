@@ -39,6 +39,7 @@ class Account(Base):
     business = relationship("Business", back_populates="accounts")
     transactions = relationship("Transaction", back_populates="account", cascade="all, delete-orphan")
     recurring_transactions = relationship("RecurringTransaction", back_populates="account")
+    checks = relationship("Check", back_populates="account")
 
     def __repr__(self):
         return f"<Account(id={self.id}, name={self.name}, type={self.account_type}, balance={self.balance})>"

@@ -78,9 +78,9 @@ Pishbin brings together scattered financial data — invoices, checks, customer 
 6. As a security-conscious user, I want two-factor authentication on my account.
 
 ### Known gaps
-- **Forecast is currently a simple historical average** (`backend/app/services/forecast_service.py`) — it projects the last 6 months' average monthly expense forward, not a true cash-flow model driven by invoices, checks, or customer payment behavior. The "30-day forecast" positioning is a product goal; the underlying model needs dedicated design/implementation work.
+- **Forecast is still mostly a simple historical average** (`backend/app/services/forecast_service.forecast_monthly_expenses`) — it projects the last 6 months' average monthly expense forward. Pending checks now contribute known-amount cash events (`get_upcoming_check_events`), but invoices and customer payment behavior are not yet wired in; the underlying model needs dedicated design/implementation work for a true cash-flow forecast.
 - Backup **restore** only validates the uploaded file's schema/user match; it does not yet re-import data.
-- Dedicated invoice and check tracking (the two data sources named in the product positioning) are not yet modeled — today's domain model covers accounts/transactions/budgets/goals/payments/banking messages/recurring, but not invoices or checks as first-class entities.
+- Dedicated **invoice** tracking (the other data source named in the product positioning) is not yet modeled. Checks are now a first-class entity (`backend/app/models/check.py`) with issued/received direction, status (pending/cleared/bounced/voided), and a Sayad tracking number field — but the actual Sayad status-inquiry API integration is a future phase (currently manual status updates only).
 
 ### Success metrics
 - Active accounts and recurring rules configured per user

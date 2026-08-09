@@ -33,6 +33,7 @@ class User(Base):
     payments = relationship("Payment", back_populates="user", cascade="all, delete-orphan")
     recurring_transactions = relationship("RecurringTransaction", back_populates="user", cascade="all, delete-orphan")
     api_keys = relationship("ApiKey", back_populates="user", cascade="all, delete-orphan")
+    checks = relationship("Check", back_populates="user", cascade="all, delete-orphan")
 
     @property
     def totp_enabled(self) -> bool:
