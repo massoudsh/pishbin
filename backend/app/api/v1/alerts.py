@@ -20,3 +20,18 @@ async def get_alerts(
     """Get budget alerts for the current user (e.g. budgets at or over 80% spent)."""
     service = AlertsService(db)
     return service.get_budget_alerts(current_user.id)
+
+
+@router.get("/cash-flow", response_model=List[dict])
+async def get_cash_flow_alerts(
+    days: int = 30,
+    threshold: float = 0,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Proactive cash-flow risk alert: raised when the `days`-day cash-flow
+    forecast projects a balance at/under `threshold`.
+    """
+    service = AlertsService(db)
+    return service.get_cash_flow_alerts(current_user.id, days=days, threshold=threshold)

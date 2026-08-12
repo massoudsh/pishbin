@@ -2,7 +2,7 @@
 API router configuration.
 """
 from fastapi import APIRouter
-from app.api.v1 import auth, accounts, businesses, transactions, budgets, goals, dashboard, reports, alerts, categories, banking_messages, payments, recurring, api_keys, backup, checks, reconciliation
+from app.api.v1 import auth, accounts, businesses, transactions, budgets, goals, dashboard, reports, alerts, categories, banking_messages, payments, recurring, api_keys, backup, checks, reconciliation, customers, invoices
 
 api_router = APIRouter()
 
@@ -22,6 +22,8 @@ api_router.include_router(banking_messages.router, prefix="/banking-messages", t
 api_router.include_router(payments.router, prefix="/payments", tags=["payments"])
 api_router.include_router(recurring.router, prefix="/recurring", tags=["recurring"])
 api_router.include_router(checks.router, prefix="/checks", tags=["checks"])
+api_router.include_router(customers.router, prefix="/customers", tags=["customers"])
+api_router.include_router(invoices.router, prefix="/invoices", tags=["invoices"])
 api_router.include_router(reconciliation.router, prefix="/reconciliation", tags=["reconciliation"])
 api_router.include_router(backup.router, prefix="/backup", tags=["backup"])
 

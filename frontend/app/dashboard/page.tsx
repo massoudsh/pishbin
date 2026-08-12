@@ -12,6 +12,7 @@ import ExpenseChart from '@/components/charts/ExpenseChart'
 import NetBurnCashChartExact from '@/components/charts/NetBurnCashChartExact'
 import { SpendingBarsExact, RevenueBarsExact } from '@/components/charts/SpendingRevenueBarsExact'
 import { BudgetAlerts } from '@/components/dashboard/BudgetAlerts'
+import { CashFlowAlert } from '@/components/dashboard/CashFlowAlert'
 import { KpiStripExact } from '@/components/dashboard/KpiStripExact'
 import { BurnIntelligence } from '@/components/dashboard/BurnIntelligence'
 import { DashboardSkeleton } from '@/components/ui/Skeleton'
@@ -319,6 +320,7 @@ function DashboardPageContent() {
               </button>
             </div>
           )}
+          <CashFlowAlert />
           <BudgetAlerts />
 
           <div className="flex flex-wrap items-center justify-between gap-4 mb-6">

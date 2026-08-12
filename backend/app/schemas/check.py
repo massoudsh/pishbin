@@ -10,6 +10,7 @@ from app.models.check import CheckDirection, CheckStatus
 
 class CheckBase(BaseModel):
     account_id: int
+    customer_id: Optional[int] = None
     direction: CheckDirection
     counterparty_name: str = Field(..., min_length=1, max_length=200)
     amount: Decimal = Field(..., gt=0)
@@ -26,6 +27,7 @@ class CheckCreate(CheckBase):
 
 class CheckUpdate(BaseModel):
     account_id: Optional[int] = None
+    customer_id: Optional[int] = None
     direction: Optional[CheckDirection] = None
     counterparty_name: Optional[str] = Field(None, min_length=1, max_length=200)
     amount: Optional[Decimal] = Field(None, gt=0)

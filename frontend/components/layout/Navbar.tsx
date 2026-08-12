@@ -37,6 +37,8 @@ export default function Navbar() {
       { href: '/investors', label: fa.nav.investors },
       { href: '/recurring', label: fa.nav.automations },
       { href: '/checks', label: fa.nav.checks },
+      { href: '/invoices', label: fa.nav.invoices },
+      { href: '/customers', label: fa.nav.customers },
       { href: '/reconciliation', label: fa.nav.reconciliation },
       { href: '/accounts', label: fa.nav.accounts },
       { href: '/payments', label: fa.nav.payments },

@@ -27,8 +27,8 @@ logging.basicConfig(
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
 )
 
-# In-memory rate limit: 100 requests per minute per client (by X-Forwarded-For or client.host)
-RATE_LIMIT_REQUESTS = 100
+# In-memory rate limit: N requests per minute per client (by X-Forwarded-For or client.host)
+RATE_LIMIT_REQUESTS = settings.RATE_LIMIT_REQUESTS
 RATE_LIMIT_WINDOW_SEC = 60
 _rate_limit_store: dict[str, list[float]] = defaultdict(list)
 

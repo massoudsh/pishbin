@@ -26,6 +26,10 @@ class Settings(BaseSettings):
     # Database (PostgreSQL)
     DATABASE_URL: str = "postgresql://postgres:postgres@localhost:5432/personalfinance"
     AUTO_CREATE_DB: bool = False  # Set True in dev to create tables on startup
+
+    # Rate limiting: requests per client per minute. Raised in tests (see conftest.py)
+    # so a growing test suite sharing one TestClient "IP" doesn't trip production limits.
+    RATE_LIMIT_REQUESTS: int = 100
     
     # Security
     SECRET_KEY: str = "your-secret-key-change-in-production"

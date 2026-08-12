@@ -8,6 +8,8 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func
 from app.models.transaction import Transaction, TransactionType
 from app.models.check import Check, CheckDirection, CheckStatus
+from app.models.invoice import Invoice, InvoiceStatus
+from app.models.account import Account
 
 
 class ForecastService:
@@ -57,6 +59,93 @@ class ForecastService:
             "total_inflow": total_inflow,
             "total_outflow": total_outflow,
             "net": total_inflow - total_outflow,
+        }
+
+    def get_upcoming_invoice_events(self, user_id: int, days: int = 30) -> Dict:
+        """
+        Unpaid invoices due within the next `days`, as future cash inflow events
+        (receivables). Overdue invoices already past due are still included —
+        they're money owed, just at higher risk of slipping.
+        """
+        today = date.today()
+        end_date = today + timedelta(days=days)
+
+        pending = (
+            self.db.query(Invoice)
+            .filter(
+                Invoice.user_id == user_id,
+                Invoice.status.in_([InvoiceStatus.ISSUED, InvoiceStatus.OVERDUE]),
+                Invoice.due_date <= end_date,
+            )
+            .order_by(Invoice.due_date.asc())
+            .all()
+        )
+
+        events = [
+            {
+                "invoice_id": inv.id,
+                "customer_id": inv.customer_id,
+                "due_date": inv.due_date.isoformat(),
+                "amount": float(inv.amount),
+                "overdue": inv.due_date < today,
+            }
+            for inv in pending
+        ]
+        total_inflow = sum(e["amount"] for e in events)
+
+        return {
+            "days": days,
+            "events": events,
+            "total_inflow": total_inflow,
+        }
+
+    def get_cash_flow_forecast(self, user_id: int, days: int = 30) -> Dict:
+        """
+        30-day cash-flow forecast (issue #49): combine known future events
+        (pending cheques + unpaid invoices) with the historical daily trend
+        of ordinary transactions, on top of the current total account balance.
+        This is the "known events + historical trend" base model called for
+        in the issue, ahead of any heavier ML forecasting.
+        """
+        current_balance = float(
+            self.db.query(func.sum(Account.balance)).filter(
+                Account.user_id == user_id,
+                Account.is_active == True,  # noqa: E712
+            ).scalar() or Decimal("0.00")
+        )
+
+        check_events = self.get_upcoming_check_events(user_id, days=days)
+        invoice_events = self.get_upcoming_invoice_events(user_id, days=days)
+        known_events_net = check_events["net"] + invoice_events["total_inflow"]
+
+        # Historical daily trend: average daily (income - expense) over the
+        # last 90 days of ordinary transactions, extrapolated over `days`.
+        trend_start = date.today() - timedelta(days=90)
+        income = self.db.query(func.sum(Transaction.amount)).filter(
+            Transaction.user_id == user_id,
+            Transaction.transaction_type == TransactionType.INCOME,
+            Transaction.date >= trend_start,
+        ).scalar() or Decimal("0.00")
+        expense = self.db.query(func.sum(Transaction.amount)).filter(
+            Transaction.user_id == user_id,
+            Transaction.transaction_type == TransactionType.EXPENSE,
+            Transaction.date >= trend_start,
+        ).scalar() or Decimal("0.00")
+        avg_daily_net = float(income - expense) / 90
+        trend_net = avg_daily_net * days
+
+        projected_net = known_events_net + trend_net
+        projected_balance = current_balance + projected_net
+
+        return {
+            "days": days,
+            "current_balance": current_balance,
+            "known_events_net": known_events_net,
+            "trend_net": trend_net,
+            "projected_net": projected_net,
+            "projected_balance": projected_balance,
+            "check_events": check_events["events"],
+            "invoice_events": invoice_events["events"],
         }
 
     def forecast_monthly_expenses(

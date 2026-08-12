@@ -445,6 +445,104 @@ class ApiClient {
     };
   }
 
+  // Customers
+  async getCustomers() {
+    const response = await this.client.get('/customers');
+    return response.data as Array<{
+      id: number;
+      name: string;
+      phone: string | null;
+      email: string | null;
+      national_id: string | null;
+      notes: string | null;
+      created_at: string | null;
+    }>;
+  }
+
+  async createCustomer(data: { name: string; phone?: string; email?: string; national_id?: string; notes?: string }) {
+    const response = await this.client.post('/customers', data);
+    return response.data;
+  }
+
+  async updateCustomer(id: number, data: Partial<{ name: string; phone: string; email: string; national_id: string; notes: string }>) {
+    const response = await this.client.put(`/customers/${id}`, data);
+    return response.data;
+  }
+
+  async deleteCustomer(id: number) {
+    await this.client.delete(`/customers/${id}`);
+  }
+
+  async getCustomerScore(id: number) {
+    const response = await this.client.get(`/customers/${id}/score`);
+    return response.data as {
+      customer_id: number;
+      total_invoices: number;
+      paid_invoices: number;
+      avg_days_late: number;
+      total_checks: number;
+      bounced_checks: number;
+      bounced_check_rate: number;
+    };
+  }
+
+  // Invoices
+  async getInvoices(params?: { customer_id?: number }) {
+    const response = await this.client.get('/invoices', { params });
+    return response.data as Array<{
+      id: number;
+      customer_id: number;
+      amount: number;
+      issue_date: string;
+      due_date: string;
+      paid_date: string | null;
+      status: 'issued' | 'paid' | 'overdue' | 'cancelled';
+      description: string | null;
+      created_at: string | null;
+    }>;
+  }
+
+  async createInvoice(data: { customer_id: number; amount: number; issue_date: string; due_date: string; description?: string }) {
+    const response = await this.client.post('/invoices', data);
+    return response.data;
+  }
+
+  async updateInvoice(id: number, data: Partial<{ customer_id: number; amount: number; issue_date: string; due_date: string; paid_date: string; status: string; description: string }>) {
+    const response = await this.client.put(`/invoices/${id}`, data);
+    return response.data;
+  }
+
+  async deleteInvoice(id: number) {
+    await this.client.delete(`/invoices/${id}`);
+  }
+
+  // Combined cash-flow forecast (checks + invoices + historical trend)
+  async getCashFlowForecast(days = 30) {
+    const response = await this.client.get('/dashboard/cash-flow-forecast', { params: { days } });
+    return response.data as {
+      days: number;
+      current_balance: number;
+      known_events_net: number;
+      trend_net: number;
+      projected_net: number;
+      projected_balance: number;
+      check_events: Array<{ check_id: number; due_date: string; direction: string; amount: number; counterparty_name: string }>;
+      invoice_events: Array<{ invoice_id: number; customer_id: number; due_date: string; amount: number; overdue: boolean }>;
+    };
+  }
+
+  async getCashFlowAlerts(days = 30) {
+    const response = await this.client.get('/alerts/cash-flow', { params: { days } });
+    return response.data as Array<{
+      type: string;
+      days: number;
+      current_balance: number;
+      projected_balance: number;
+      threshold: number;
+      alert_type: 'warning' | 'critical';
+    }>;
+  }
+
   // Budget endpoints
   async getBudgets() {
     const response = await this.client.get('/budgets');

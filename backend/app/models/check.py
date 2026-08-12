@@ -30,6 +30,7 @@ class Check(Base):
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     account_id = Column(Integer, ForeignKey("accounts.id"), nullable=False, index=True)
+    customer_id = Column(Integer, ForeignKey("customers.id"), nullable=True, index=True)
     direction = Column(Enum(CheckDirection), nullable=False)
     counterparty_name = Column(String(200), nullable=False)  # issuer if received, payee if issued
     amount = Column(Numeric(14, 0), nullable=False)  # Rials, no decimals
@@ -44,6 +45,7 @@ class Check(Base):
 
     user = relationship("User", back_populates="checks")
     account = relationship("Account", back_populates="checks")
+    customer = relationship("Customer", back_populates="checks")
 
     def __repr__(self):
         return f"<Check(id={self.id}, direction={self.direction}, amount={self.amount}, due={self.due_date}, status={self.status})>"

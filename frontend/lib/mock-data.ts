@@ -44,6 +44,16 @@ export const MOCK_CHECKS = [
   { id: 2, account_id: 1, direction: 'issued' as const, counterparty_name: 'تامین‌کننده ب', amount: 2_500_000, bank_name: 'بانک ملی', check_number: null, sayad_id: null, due_date: new Date(Date.now() + 20 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], status: 'pending' as const, description: null },
 ]
 
+export const MOCK_CUSTOMERS = [
+  { id: 1, name: 'شرکت الف', phone: '09120000000', email: null, national_id: null, notes: null, created_at: new Date().toISOString() },
+  { id: 2, name: 'فروشگاه ب', phone: null, email: null, national_id: null, notes: null, created_at: new Date().toISOString() },
+]
+
+export const MOCK_INVOICES = [
+  { id: 1, customer_id: 1, amount: 8_000_000, issue_date: new Date().toISOString().split('T')[0], due_date: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], paid_date: null, status: 'issued' as const, description: null },
+  { id: 2, customer_id: 2, amount: 3_000_000, issue_date: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], due_date: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], paid_date: null, status: 'overdue' as const, description: null },
+]
+
 export const MOCK_EXPENSES_BY_CATEGORY = [
   { category_id: 1, total: 3_200_000, name: 'خوراک' },
   { category_id: 2, total: 1_100_000, name: 'حمل‌ونقل' },

@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func
 from app.models.budget import Budget
 from app.models.transaction import Transaction, TransactionType
+from app.services.forecast_service import ForecastService
 
 
 class AlertsService:
@@ -51,6 +52,34 @@ class AlertsService:
                     "percentage": float(percentage),
                     "alert_type": "warning" if percentage < 100 else "critical"
                 })
-        
+
         return alerts
+
+    def get_cash_flow_alerts(self, user_id: int, days: int = 30, threshold: float = 0) -> List[Dict]:
+        """
+        Proactive cash-flow risk alert (issue #51): if the `days`-day forecast
+        (current balance + known future events + historical trend) projects
+        below `threshold`, raise a warning/critical alert — mirroring the
+        existing >=80% budget-alert pattern above, but forward-looking.
+        """
+        forecast = ForecastService(self.db).get_cash_flow_forecast(user_id, days=days)
+        projected_balance = forecast["projected_balance"]
+
+        if projected_balance >= threshold:
+            return []
+
+        current_balance = forecast["current_balance"]
+        # Critical if the current balance itself is already at/under threshold
+        # (the risk isn't just projected, it's arguably already here);
+        # warning if it's the `days`-day projection that dips below.
+        alert_type = "critical" if current_balance <= threshold else "warning"
+
+        return [{
+            "type": "cash_flow_risk",
+            "days": days,
+            "current_balance": current_balance,
+            "projected_balance": projected_balance,
+            "threshold": threshold,
+            "alert_type": alert_type,
+        }]
 

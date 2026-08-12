@@ -8,6 +8,7 @@ from app.dependencies import get_current_user
 from app.models.user import User
 from app.services.reports_service import ReportsService
 from app.services.metrics_service import get_founder_overview, get_cash_summary_digest
+from app.services.forecast_service import ForecastService
 
 router = APIRouter()
 
@@ -39,4 +40,18 @@ async def get_cash_summary_digest_endpoint(
 ):
     """Last N days: cash in, cash out, net, top 3 expense categories. For weekly digest email (cron calls this)."""
     return get_cash_summary_digest(db, current_user.id, days=days)
+
+
+@router.get("/cash-flow-forecast")
+async def get_cash_flow_forecast_endpoint(
+    days: int = 30,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    `days`-day cash-flow forecast: current balance + known future events
+    (pending cheques, unpaid invoices) + historical daily trend.
+    """
+    service = ForecastService(db)
+    return service.get_cash_flow_forecast(current_user.id, days=days)
 
