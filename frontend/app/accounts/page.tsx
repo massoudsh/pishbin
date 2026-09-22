@@ -10,6 +10,9 @@ import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { fa } from '@/lib/fa'
 import type { Account } from '@/lib/schemas/account'
 import { MOCK_ACCOUNTS } from '@/lib/mock-data'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 
 export default function AccountsPage() {
   const [accounts, setAccounts] = useState<Account[]>([])
@@ -68,23 +71,17 @@ export default function AccountsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100/80 dark:bg-gray-950">
+    <div className="min-h-screen bg-background">
       <Navbar />
 
       <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
         <div className="px-4 py-6 sm:px-0">
           <div className="flex justify-between items-center mb-6 flex-wrap gap-2">
             <div className="flex items-center gap-2">
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">{fa.accounts.title}</h2>
-              {isMock && <span className="text-xs font-medium bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-200 px-2 py-1 rounded-full">نمایش نمونه</span>}
+              <h2 className="text-2xl font-bold text-foreground">{fa.accounts.title}</h2>
+              {isMock && <Badge variant="warning">نمایش نمونه</Badge>}
             </div>
-            <button
-              type="button"
-              onClick={openCreate}
-              className="bg-primary-500 text-white px-4 py-2.5 rounded-xl hover:bg-primary-600 font-medium text-sm shadow-sm"
-            >
-              {fa.accounts.addAccount}
-            </button>
+            <Button onClick={openCreate}>{fa.accounts.addAccount}</Button>
           </div>
 
           {loading ? (
@@ -99,35 +96,28 @@ export default function AccountsPage() {
           ) : (
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {accounts.map((account) => (
-                <div key={account.id} className="card p-6">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h3 className="text-lg font-medium text-gray-900 dark:text-white">{account.name}</h3>
-                      <p className="text-sm text-gray-500 dark:text-gray-400 capitalize">{account.account_type.replace('_', ' ')}</p>
-                      <p className="text-2xl font-bold text-gray-900 dark:text-white mt-4">{formatCurrency(account.balance, account.currency)}</p>
-                      {account.description && (
-                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">{account.description}</p>
-                      )}
+                <Card key={account.id}>
+                  <CardContent className="p-6">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <h3 className="text-lg font-medium text-foreground">{account.name}</h3>
+                        <p className="text-sm text-muted-foreground capitalize">{account.account_type.replace('_', ' ')}</p>
+                        <p className="text-2xl font-bold text-foreground mt-4">{formatCurrency(account.balance, account.currency)}</p>
+                        {account.description && (
+                          <p className="text-sm text-muted-foreground mt-2">{account.description}</p>
+                        )}
+                      </div>
+                      <div className="flex gap-2">
+                        <Button size="sm" variant="ghost" onClick={() => openEdit(account)} className="text-accent">
+                          {fa.common.edit}
+                        </Button>
+                        <Button size="sm" variant="ghost" onClick={() => handleDeleteClick(account)} disabled={deletingId === account.id} className="text-red-600 dark:text-red-400">
+                          {deletingId === account.id ? fa.common.deleting : fa.common.delete}
+                        </Button>
+                      </div>
                     </div>
-                    <div className="flex gap-2">
-                      <button
-                        type="button"
-                        onClick={() => openEdit(account)}
-                        className="text-sm text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 font-medium"
-                      >
-                        {fa.common.edit}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteClick(account)}
-                        disabled={deletingId === account.id}
-                        className="text-sm text-red-600 dark:text-red-400 hover:text-red-700 font-medium disabled:opacity-50"
-                      >
-                        {deletingId === account.id ? fa.common.deleting : fa.common.delete}
-                      </button>
-                    </div>
-                  </div>
-                </div>
+                  </CardContent>
+                </Card>
               ))}
             </div>
           )}
