@@ -10,6 +10,9 @@ import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { fa } from '@/lib/fa'
 import type { Budget } from '@/lib/schemas/budget'
 import { MOCK_BUDGETS } from '@/lib/mock-data'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { Card, CardContent } from '@/components/ui/card'
 
 export default function BudgetsPage() {
   const [budgets, setBudgets] = useState<Budget[]>([])
@@ -68,23 +71,17 @@ export default function BudgetsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100/80 dark:bg-gray-950">
+    <div className="min-h-screen bg-background">
       <Navbar />
 
       <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
         <div className="px-4 py-6 sm:px-0">
           <div className="flex justify-between items-center mb-6 flex-wrap gap-2">
             <div className="flex items-center gap-2">
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">{fa.budgets.title}</h2>
-              {isMock && <span className="text-xs font-medium bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-200 px-2 py-1 rounded-full">نمایش نمونه</span>}
+              <h2 className="text-2xl font-bold text-foreground">{fa.budgets.title}</h2>
+              {isMock && <Badge variant="warning">نمایش نمونه</Badge>}
             </div>
-            <button
-              type="button"
-              onClick={openCreate}
-              className="bg-primary-500 text-white px-4 py-2.5 rounded-xl hover:bg-primary-600 font-medium text-sm shadow-sm"
-            >
-              {fa.budgets.createBudget}
-            </button>
+            <Button onClick={openCreate}>{fa.budgets.createBudget}</Button>
           </div>
 
           {loading ? (
@@ -106,7 +103,8 @@ export default function BudgetsPage() {
                   ? b.percentage_used
                   : (budget.amount > 0 ? (spent / budget.amount) * 100 : 0)
                 return (
-                  <div key={budget.id} className="card p-6">
+                  <Card key={budget.id}>
+                    <CardContent className="p-6">
                     <div className="flex justify-between items-start">
                       <div>
                         <h3 className="text-lg font-medium text-gray-900 dark:text-white">{budget.name}</h3>
@@ -141,8 +139,9 @@ export default function BudgetsPage() {
                           {deletingId === budget.id ? fa.common.deleting : fa.common.delete}
                         </button>
                       </div>
-                    </div>
-                  </div>
+                      </div>
+                    </CardContent>
+                  </Card>
                 )
               })}
             </div>
