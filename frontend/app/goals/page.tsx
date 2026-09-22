@@ -10,6 +10,9 @@ import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { fa } from '@/lib/fa'
 import type { Goal } from '@/lib/schemas/goal'
 import { MOCK_GOALS } from '@/lib/mock-data'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { Card, CardContent } from '@/components/ui/card'
 
 export default function GoalsPage() {
   const [goals, setGoals] = useState<Goal[]>([])
@@ -68,23 +71,17 @@ export default function GoalsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100/80 dark:bg-gray-950">
+    <div className="min-h-screen bg-background">
       <Navbar />
 
       <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
         <div className="px-4 py-6 sm:px-0">
           <div className="flex justify-between items-center mb-6 flex-wrap gap-2">
             <div className="flex items-center gap-2">
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">{fa.goals.title}</h2>
-              {isMock && <span className="text-xs font-medium bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-200 px-2 py-1 rounded-full">نمایش نمونه</span>}
+              <h2 className="text-2xl font-bold text-foreground">{fa.goals.title}</h2>
+              {isMock && <Badge variant="warning">نمایش نمونه</Badge>}
             </div>
-            <button
-              type="button"
-              onClick={openCreate}
-              className="bg-primary-500 text-white px-4 py-2.5 rounded-xl hover:bg-primary-600 font-medium text-sm shadow-sm"
-            >
-              {fa.goals.createGoal}
-            </button>
+            <Button onClick={openCreate}>{fa.goals.createGoal}</Button>
           </div>
 
           {loading ? (
@@ -101,7 +98,8 @@ export default function GoalsPage() {
               {goals.map((goal) => {
                 const progress = goal.target_amount > 0 ? (goal.current_amount / goal.target_amount) * 100 : 0
                 return (
-                  <div key={goal.id} className="card p-6">
+                  <Card key={goal.id}>
+                    <CardContent className="p-6">
                     <div className="flex justify-between items-start mb-4">
                       <div>
                         <h3 className="text-lg font-medium text-gray-900 dark:text-white">{goal.name}</h3>
@@ -147,8 +145,9 @@ export default function GoalsPage() {
                         />
                       </div>
                     </div>
-                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">{formatNumber(progress, { maximumFractionDigits: 1, minimumFractionDigits: 1 })} {fa.goals.percentComplete}</p>
-                  </div>
+                    <p className="text-sm text-muted-foreground mt-2">{formatNumber(progress, { maximumFractionDigits: 1, minimumFractionDigits: 1 })} {fa.goals.percentComplete}</p>
+                    </CardContent>
+                  </Card>
                 )
               })}
             </div>
