@@ -16,6 +16,9 @@ import { CashFlowAlert } from '@/components/dashboard/CashFlowAlert'
 import { KpiStripExact } from '@/components/dashboard/KpiStripExact'
 import { BurnIntelligence } from '@/components/dashboard/BurnIntelligence'
 import { DashboardSkeleton } from '@/components/ui/Skeleton'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Stat } from '@/components/ui/stat'
 import type { FounderOverview } from '@/lib/schemas/founder'
 import { fa } from '@/lib/fa'
 
@@ -36,16 +39,16 @@ function InvestorExportBar() {
     }
   }
   return (
-    <div className="flex flex-wrap gap-3 mb-6 p-4 rounded-xl border border-gray-700 bg-gray-800/80">
-      <span className="text-sm font-medium text-gray-300">{fa.common.export}:</span>
-      <button type="button" onClick={() => window.print()} className="px-4 py-2 rounded-md bg-emerald-600 text-white hover:bg-emerald-500 text-sm font-medium">
+    <Card className="mb-6 flex flex-wrap items-center gap-3 p-4">
+      <span className="text-sm font-medium text-muted-foreground">{fa.common.export}:</span>
+      <Button size="sm" onClick={() => window.print()}>
         PDF
-      </button>
-      <button type="button" onClick={handleExportCsv} disabled={exporting} className="px-4 py-2 rounded-md border border-gray-600 bg-gray-700 text-gray-300 hover:bg-gray-600 text-sm font-medium disabled:opacity-50">
+      </Button>
+      <Button size="sm" variant="outline" onClick={handleExportCsv} disabled={exporting}>
         {exporting ? fa.common.loading : 'CSV'}
-      </button>
-      <span className="text-sm text-gray-500 self-center">{fa.dashboard.shareableLinkComing}</span>
-    </div>
+      </Button>
+      <span className="self-center text-sm text-muted-foreground">{fa.dashboard.shareableLinkComing}</span>
+    </Card>
   )
 }
 import type { DashboardSummary } from '@/lib/schemas/dashboard'
@@ -124,7 +127,7 @@ function DashboardPageContent() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-950">
+      <div className="min-h-screen bg-background">
         <Navbar />
         <main id="main-content" className="max-w-7xl mx-auto py-10 px-4 sm:px-6 lg:px-8">
           <DashboardSkeleton />
@@ -159,7 +162,7 @@ function DashboardPageContent() {
     ]
 
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 dark:bg-gray-900">
+      <div className="min-h-screen bg-background">
         <Navbar />
 
         <main id="main-content" className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
@@ -170,90 +173,99 @@ function DashboardPageContent() {
 
             <div className="flex items-start justify-between gap-4 mb-6">
               <div>
-                <h2 className="text-2xl font-bold text-gray-900">{fa.nav.overview}</h2>
-                <p className="text-sm text-gray-600 mt-1">{fa.dashboard.sampleDashboard}</p>
+                <h2 className="text-2xl font-bold text-foreground">{fa.nav.overview}</h2>
+                <p className="text-sm text-muted-foreground mt-1">{fa.dashboard.sampleDashboard}</p>
               </div>
-              <Link
-                href="/register"
-                className="bg-primary-600 text-white px-4 py-2 rounded-md hover:bg-primary-700 text-sm font-medium"
-              >
-                {fa.common.createAccount}
+              <Link href="/register">
+                <Button>{fa.common.createAccount}</Button>
               </Link>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-5">
-                <p className="text-sm text-gray-500">{fa.dashboard.totalBalance}</p>
-                <p className="mt-2 text-2xl font-semibold text-gray-900">{formatCurrency(14879.57)}</p>
-                <p className="mt-1 text-xs text-gray-500">{guestAccounts.length} {fa.dashboard.acrossAccounts}</p>
-              </div>
-              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-5">
-                <p className="text-sm text-gray-500">{fa.dashboard.incomeMonth}</p>
-                <p className="mt-2 text-2xl font-semibold text-green-700">{formatCurrency(4200)}</p>
-                <p className="mt-1 text-xs text-gray-500">{fa.dashboard.thisMonthToDate}</p>
-              </div>
-              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-5">
-                <p className="text-sm text-gray-500">{fa.dashboard.expensesMonth}</p>
-                <p className="mt-2 text-2xl font-semibold text-red-700">{formatCurrency(2735)}</p>
-                <p className="mt-1 text-xs text-gray-500">{fa.dashboard.thisMonthToDate}</p>
-              </div>
-              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-5">
-                <p className="text-sm text-gray-500">{fa.dashboard.netMonth}</p>
-                <p className="mt-2 text-2xl font-semibold text-gray-900">۳۵٪</p>
-                <p className="mt-1 text-xs text-gray-500">{fa.dashboard.budgetsAndGoals}</p>
-              </div>
+              <Stat
+                label={fa.dashboard.totalBalance}
+                value={formatCurrency(14879.57)}
+                hint={`${guestAccounts.length} ${fa.dashboard.acrossAccounts}`}
+              />
+              <Stat
+                label={fa.dashboard.incomeMonth}
+                value={formatCurrency(4200)}
+                hint={fa.dashboard.thisMonthToDate}
+                valueClassName="text-emerald-700 dark:text-emerald-400"
+              />
+              <Stat
+                label={fa.dashboard.expensesMonth}
+                value={formatCurrency(2735)}
+                hint={fa.dashboard.thisMonthToDate}
+                valueClassName="text-red-700 dark:text-red-400"
+              />
+              <Stat
+                label={fa.dashboard.netMonth}
+                value="۳۵٪"
+                hint={fa.dashboard.budgetsAndGoals}
+              />
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
-              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-5 lg:col-span-2">
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="text-base font-semibold text-gray-900">{fa.dashboard.cashflowSnapshot}</h3>
-                  <span className="text-xs text-gray-500">{fa.dashboard.last30Days}</span>
-                </div>
-                <IncomeExpenseBar
-                  data={[
-                    { name: '30d', income: 4200, expenses: 2735, net: 1465 },
-                  ]}
-                />
-              </div>
-              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-5">
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="text-base font-semibold text-gray-900">{fa.dashboard.spendingByCategory}</h3>
-                  <span className="text-xs text-gray-500">نمونه</span>
-                </div>
-                <ExpenseChart data={guestExpensesByCategory} />
-              </div>
+              <Card className="lg:col-span-2">
+                <CardHeader className="flex-row items-center justify-between pb-0">
+                  <CardTitle>{fa.dashboard.cashflowSnapshot}</CardTitle>
+                  <span className="text-xs text-muted-foreground">{fa.dashboard.last30Days}</span>
+                </CardHeader>
+                <CardContent>
+                  <IncomeExpenseBar
+                    data={[
+                      { name: '30d', income: 4200, expenses: 2735, net: 1465 },
+                    ]}
+                  />
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="flex-row items-center justify-between pb-0">
+                  <CardTitle>{fa.dashboard.spendingByCategory}</CardTitle>
+                  <span className="text-xs text-muted-foreground">نمونه</span>
+                </CardHeader>
+                <CardContent>
+                  <ExpenseChart data={guestExpensesByCategory} />
+                </CardContent>
+              </Card>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-5">
-                <h3 className="text-base font-semibold text-gray-900 mb-2">{fa.nav.accounts}</h3>
-                <div className="space-y-3">
+              <Card>
+                <CardHeader>
+                  <CardTitle>{fa.nav.accounts}</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
                   {guestAccounts.map((a) => (
                     <div key={a.id} className="flex items-center justify-between">
                       <div>
-                        <p className="text-sm font-medium text-gray-900">{a.name}</p>
-                        <p className="text-xs text-gray-500">{a.account_type.replace('_', ' ')}</p>
+                        <p className="text-sm font-medium text-foreground">{a.name}</p>
+                        <p className="text-xs text-muted-foreground">{a.account_type.replace('_', ' ')}</p>
                       </div>
-                      <p className="text-sm font-semibold text-gray-900">{formatCurrency(a.balance)}</p>
+                      <p className="text-sm font-semibold text-foreground">{formatCurrency(a.balance)}</p>
                     </div>
                   ))}
-                </div>
-              </div>
-              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-5">
-                <h3 className="text-base font-semibold text-gray-900 mb-2">{fa.dashboard.recentActivity}</h3>
-                <p className="text-sm text-gray-600">
-                  {fa.dashboard.signInToTrack}
-                </p>
-                <div className="mt-4 flex gap-3">
-                  <Link href="/register" className="bg-primary-600 text-white px-4 py-2 rounded-md hover:bg-primary-700 text-sm font-medium">
-                    {fa.common.createAccount}
-                  </Link>
-                  <Link href="/login" className="px-4 py-2 rounded-md border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50">
-                    {fa.common.signIn}
-                  </Link>
-                </div>
-              </div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader>
+                  <CardTitle>{fa.dashboard.recentActivity}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-muted-foreground">
+                    {fa.dashboard.signInToTrack}
+                  </p>
+                  <div className="mt-4 flex gap-3">
+                    <Link href="/register">
+                      <Button>{fa.common.createAccount}</Button>
+                    </Link>
+                    <Link href="/login">
+                      <Button variant="outline">{fa.common.signIn}</Button>
+                    </Link>
+                  </div>
+                </CardContent>
+              </Card>
             </div>
           </div>
         </main>
@@ -263,29 +275,21 @@ function DashboardPageContent() {
 
   if (loadError || (!founderOverview && !isGuest)) {
     return (
-      <div className="min-h-screen bg-gray-950">
+      <div className="min-h-screen bg-background">
         <Navbar />
         <main className="min-h-[60vh] flex flex-col items-center justify-center px-4">
-          <p className="text-lg font-medium text-red-400">
+          <p className="text-lg font-medium text-destructive">
             {loadError === 'timeout' ? 'زمان اتصال به سرور تمام شد.' : fa.dashboard.failedToLoad}
           </p>
-          <p className="mt-2 text-sm text-gray-400 text-center max-w-md">
+          <p className="mt-2 text-sm text-muted-foreground text-center max-w-md">
             {fa.dashboard.apiUnreachable}
           </p>
           <div className="mt-6 flex gap-3">
-            <button
-              type="button"
-              onClick={() => loadDashboard()}
-              disabled={loading}
-              className="px-4 py-2 bg-emerald-600 text-white rounded-md hover:bg-emerald-500 disabled:opacity-50 text-sm font-medium"
-            >
+            <Button onClick={() => loadDashboard()} disabled={loading}>
               {loading ? fa.common.loading : fa.common.retry}
-            </button>
-            <Link
-              href="/onboarding"
-              className="px-4 py-2 rounded-md border border-gray-600 text-gray-300 hover:bg-gray-800 text-sm font-medium"
-            >
-              راهنمای شروع
+            </Button>
+            <Link href="/onboarding">
+              <Button variant="outline">راهنمای شروع</Button>
             </Link>
           </div>
         </main>
@@ -296,16 +300,16 @@ function DashboardPageContent() {
   const cashBalance = founderOverview!.kpis.cash_balance?.value ?? 0
 
   return (
-    <div className="min-h-screen bg-gray-950">
+    <div className="min-h-screen bg-background">
       <Navbar />
 
       <main id="main-content" className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
         <div className="px-4 py-6 sm:px-0">
           {paymentBanner && (
-  <div
-              className={`mb-4 rounded-lg border px-4 py-3 flex items-center justify-between ${
+            <div
+              className={`mb-4 flex items-center justify-between rounded-lg border px-4 py-3 ${
                 paymentBanner.type === 'success'
-                  ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 text-green-800 dark:text-green-200'
+                  ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-200'
                   : 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 text-red-800 dark:text-red-200'
               }`}
             >
@@ -313,7 +317,7 @@ function DashboardPageContent() {
               <button
                 type="button"
                 onClick={() => setPaymentBanner(null)}
-                className="ml-2 text-current opacity-70 hover:opacity-100"
+                className="ms-2 text-current opacity-70 hover:opacity-100"
                 aria-label="Dismiss"
               >
                 ×
@@ -325,18 +329,18 @@ function DashboardPageContent() {
 
           <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
             <div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">
-                {fa.dashboard.titleBeforeRealtime}<span className="text-emerald-400">{fa.dashboard.realtime}</span>{fa.dashboard.titleAfterRealtime}
+              <h1 className="text-2xl sm:text-3xl font-bold text-foreground mb-2">
+                {fa.dashboard.titleBeforeRealtime}<span className="text-accent">{fa.dashboard.realtime}</span>{fa.dashboard.titleAfterRealtime}
               </h1>
-              <p className="text-sm text-gray-400">{fa.dashboard.founderOverview}</p>
+              <p className="text-sm text-muted-foreground">{fa.dashboard.founderOverview}</p>
             </div>
             <label className="flex items-center gap-2 cursor-pointer">
-              <span className="text-sm font-medium text-gray-300">{fa.dashboard.investorMode}</span>
+              <span className="text-sm font-medium text-muted-foreground">{fa.dashboard.investorMode}</span>
               <input
                 type="checkbox"
                 checked={investorMode}
                 onChange={(e) => setInvestorMode(e.target.checked)}
-                className="rounded border-gray-600 bg-gray-700 text-emerald-500 focus:ring-emerald-500"
+                className="rounded border-border bg-surface text-accent focus:ring-emerald-500"
               />
             </label>
           </div>
@@ -351,17 +355,17 @@ function DashboardPageContent() {
 
           {widgetIds.includes('quick_links') && !investorMode && (
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6 print:hidden">
-              <Link href="/transactions" className="rounded-xl border border-gray-700 bg-gray-800 p-4 text-center hover:bg-gray-700/50 transition">
-<span className="text-sm font-medium text-white">{fa.dashboard.addTransaction}</span>
-            </Link>
-            <Link href="/accounts" className="rounded-xl border border-gray-700 bg-gray-800 p-4 text-center hover:bg-gray-700/50 transition">
-                <span className="text-sm font-medium text-white">{fa.dashboard.addAccount}</span>
+              <Link href="/transactions" className="rounded-xl border border-border bg-surface p-4 text-center transition hover:bg-muted/60">
+                <span className="text-sm font-medium text-foreground">{fa.dashboard.addTransaction}</span>
               </Link>
-              <Link href="/reports" className="rounded-xl border border-gray-700 bg-gray-800 p-4 text-center hover:bg-gray-700/50 transition">
-                <span className="text-sm font-medium text-white">{fa.nav.reports}</span>
+              <Link href="/accounts" className="rounded-xl border border-border bg-surface p-4 text-center transition hover:bg-muted/60">
+                <span className="text-sm font-medium text-foreground">{fa.dashboard.addAccount}</span>
               </Link>
-              <Link href="/investors" className="rounded-xl border border-gray-700 bg-gray-800 p-4 text-center hover:bg-gray-700/50 transition">
-                <span className="text-sm font-medium text-white">ARR / MRR</span>
+              <Link href="/reports" className="rounded-xl border border-border bg-surface p-4 text-center transition hover:bg-muted/60">
+                <span className="text-sm font-medium text-foreground">{fa.nav.reports}</span>
+              </Link>
+              <Link href="/investors" className="rounded-xl border border-border bg-surface p-4 text-center transition hover:bg-muted/60">
+                <span className="text-sm font-medium text-foreground">ARR / MRR</span>
               </Link>
             </div>
           )}
@@ -372,30 +376,43 @@ function DashboardPageContent() {
 
           {widgetIds.includes('charts') && (
             <>
-              <button
-                type="button"
+              <Button
+                variant="ghost"
+                size="sm"
                 onClick={() => setChartsOpen((o) => !o)}
-                className="flex items-center gap-2 mb-4 text-sm font-medium text-gray-400 hover:text-white transition"
+                className="mb-4"
               >
                 {fa.dashboard.charts} {chartsOpen ? '^' : '∨'}
-              </button>
+              </Button>
               {chartsOpen && (
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
-              <div className="bg-gray-800/80 rounded-xl border border-gray-700 p-5 lg:col-span-2">
-                <h3 className="text-base font-semibold text-white mb-2">{fa.dashboard.netBurnAndCash}</h3>
-                <NetBurnCashChartExact data={founderOverview!.sparkline_months} cashBalance={cashBalance} />
-              </div>
-              <div className="space-y-4">
-                <div className="bg-gray-800/80 rounded-xl border border-gray-700 p-5">
-                  <h3 className="text-base font-semibold text-white mb-2">{fa.dashboard.spending} &gt;</h3>
-                  <SpendingBarsExact data={founderOverview!.sparkline_months} />
+                  <Card className="lg:col-span-2">
+                    <CardHeader>
+                      <CardTitle>{fa.dashboard.netBurnAndCash}</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <NetBurnCashChartExact data={founderOverview!.sparkline_months} cashBalance={cashBalance} />
+                    </CardContent>
+                  </Card>
+                  <div className="space-y-4">
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>{fa.dashboard.spending} &gt;</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <SpendingBarsExact data={founderOverview!.sparkline_months} />
+                      </CardContent>
+                    </Card>
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>{fa.dashboard.revenue} &gt;</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <RevenueBarsExact data={founderOverview!.sparkline_months} />
+                      </CardContent>
+                    </Card>
+                  </div>
                 </div>
-                <div className="bg-gray-800/80 rounded-xl border border-gray-700 p-5">
-                  <h3 className="text-base font-semibold text-white mb-2">{fa.dashboard.revenue} &gt;</h3>
-                  <RevenueBarsExact data={founderOverview!.sparkline_months} />
-                </div>
-              </div>
-            </div>
               )}
             </>
           )}
@@ -403,69 +420,75 @@ function DashboardPageContent() {
           {widgetIds.includes('accounts') || widgetIds.includes('recent') ? (
           <>
           <div className="flex items-center justify-between gap-4 mb-4">
-            <h2 className="text-lg font-semibold text-white">{fa.dashboard.accountsAndActivity}</h2>
+            <h2 className="text-lg font-semibold text-foreground">{fa.dashboard.accountsAndActivity}</h2>
             <div className="flex gap-2 print:hidden">
-              <button type="button" onClick={() => window.print()} className="px-4 py-2 rounded-md border border-gray-600 bg-gray-800 text-sm font-medium text-gray-300 hover:bg-gray-700">
+              <Button variant="outline" size="sm" onClick={() => window.print()}>
                 {fa.common.print} / PDF
-              </button>
-              <Link href="/transactions" className="px-4 py-2 rounded-md border border-gray-600 bg-gray-800 text-sm font-medium text-gray-300 hover:bg-gray-700">
-                {fa.dashboard.addTransaction}
+              </Button>
+              <Link href="/transactions">
+                <Button variant="outline" size="sm">{fa.dashboard.addTransaction}</Button>
               </Link>
-              <Link href="/accounts" className="bg-emerald-600 text-white px-4 py-2 rounded-md hover:bg-emerald-500 text-sm font-medium">
-                {fa.dashboard.addAccount}
+              <Link href="/accounts">
+                <Button size="sm">{fa.dashboard.addAccount}</Button>
               </Link>
             </div>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {widgetIds.includes('accounts') && (
-            <div className="bg-gray-800/80 rounded-xl border border-gray-700 p-5">
-              <h3 className="text-base font-semibold text-white mb-4">{fa.nav.accounts}</h3>
-              {accounts.length === 0 ? (
-                <p className="text-sm text-gray-400">{fa.dashboard.noAccountsYet}</p>
-              ) : (
-                <div className="space-y-3">
-                  {accounts.slice(0, 6).map((a) => (
-                    <div key={a.id} className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm font-medium text-white">{a.name}</p>
-                        <p className="text-xs text-gray-400">{a.account_type.replace('_', ' ')}</p>
+            <Card>
+              <CardHeader>
+                <CardTitle>{fa.nav.accounts}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {accounts.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">{fa.dashboard.noAccountsYet}</p>
+                ) : (
+                  <div className="space-y-3">
+                    {accounts.slice(0, 6).map((a) => (
+                      <div key={a.id} className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-medium text-foreground">{a.name}</p>
+                          <p className="text-xs text-muted-foreground">{a.account_type.replace('_', ' ')}</p>
+                        </div>
+                        <p className="text-sm font-semibold text-foreground">{formatCurrency(a.balance, a.currency)}</p>
                       </div>
-                      <p className="text-sm font-semibold text-white">{formatCurrency(a.balance, a.currency)}</p>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
             )}
             {widgetIds.includes('recent') && (
-            <div className="bg-gray-800/80 rounded-xl border border-gray-700 p-5">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-base font-semibold text-white">{fa.dashboard.recentTransactions}</h3>
-                <Link href="/transactions" className="text-sm text-emerald-400 hover:text-emerald-300">{fa.common.viewAll}</Link>
-              </div>
-              {(summary?.recent_transactions?.length ?? 0) === 0 ? (
-                <p className="text-sm text-gray-400">{fa.dashboard.noTransactionsYet}</p>
-              ) : (
-                <div className="divide-y divide-gray-700">
-                  {(summary!.recent_transactions).map((t) => (
-                    <div key={t.id} className="py-3 flex items-center justify-between gap-4">
-                      <div className="min-w-0">
-                        <p className="text-sm font-medium text-white truncate">{t.description || 'Transaction'}</p>
-                        <p className="text-xs text-gray-400">{format(new Date(t.date), 'PP')}</p>
+            <Card>
+              <CardHeader className="flex-row items-center justify-between pb-0">
+                <CardTitle>{fa.dashboard.recentTransactions}</CardTitle>
+                <Link href="/transactions" className="text-sm text-accent hover:opacity-80">{fa.common.viewAll}</Link>
+              </CardHeader>
+              <CardContent className="pt-3">
+                {(summary?.recent_transactions?.length ?? 0) === 0 ? (
+                  <p className="text-sm text-muted-foreground">{fa.dashboard.noTransactionsYet}</p>
+                ) : (
+                  <div className="divide-y divide-border">
+                    {(summary!.recent_transactions).map((t) => (
+                      <div key={t.id} className="py-3 flex items-center justify-between gap-4">
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium text-foreground truncate">{t.description || 'Transaction'}</p>
+                          <p className="text-xs text-muted-foreground">{format(new Date(t.date), 'PP')}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className={['text-sm font-semibold', t.type === 'income' ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'].join(' ')}>
+                            {t.type === 'income' ? '+' : '-'}
+                            {formatCurrency(t.amount)}
+                          </p>
+                          <p className="text-xs text-muted-foreground capitalize">{t.type}</p>
+                        </div>
                       </div>
-                      <div className="text-right">
-                        <p className={['text-sm font-semibold', t.type === 'income' ? 'text-emerald-400' : 'text-red-400'].join(' ')}>
-                          {t.type === 'income' ? '+' : '-'}
-                          {formatCurrency(t.amount)}
-                        </p>
-                        <p className="text-xs text-gray-400 capitalize">{t.type}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
             )}
           </div>
           </>
@@ -480,8 +503,8 @@ function DashboardPageContent() {
 export default function DashboardPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen bg-gray-950 flex items-center justify-center">
-        <div className="text-gray-400">Loading...</div>
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-muted-foreground">Loading...</div>
       </div>
     }>
       <DashboardPageContent />
