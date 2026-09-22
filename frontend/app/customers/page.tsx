@@ -6,6 +6,8 @@ import Navbar from '@/components/layout/Navbar'
 import { apiClient, getApiErrorMessage } from '@/lib/api'
 import { fa } from '@/lib/fa'
 import { MOCK_CUSTOMERS } from '@/lib/mock-data'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 
 interface CustomerRow {
   id: number
@@ -117,8 +119,9 @@ export default function CustomersPage() {
           {isMock && <span className="text-xs font-medium bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-200 px-2 py-1 rounded-full">نمایش نمونه</span>}
         </div>
 
-        <div className="card p-6 mb-8">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">{fa.customers.addCustomer}</h2>
+        <Card className="mb-8">
+          <CardHeader><CardTitle>{fa.customers.addCustomer}</CardTitle></CardHeader>
+          <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             {error && (
               <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 px-4 py-3 rounded-md text-sm">
@@ -175,20 +178,16 @@ export default function CustomersPage() {
                 />
               </div>
             </div>
-            <button
-              type="submit"
-              disabled={saving}
-              className="px-4 py-2.5 bg-primary-500 text-white rounded-xl hover:bg-primary-600 disabled:opacity-50 text-sm font-medium"
-            >
+          <Button type="submit" disabled={saving}>
               {saving ? fa.customers.addingCustomer : fa.customers.addCustomer}
-            </button>
+            </Button>
           </form>
-        </div>
+          </CardContent>
+        </Card>
 
-        <div className="card overflow-hidden">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white p-4 border-b border-gray-200 dark:border-gray-700">
-            {fa.customers.listTitle}
-          </h2>
+        <Card className="overflow-hidden">
+          <CardHeader className="border-b border-border"><CardTitle>{fa.customers.listTitle}</CardTitle></CardHeader>
+          <CardContent className="p-0">
           {loading ? (
             <div className="p-6 text-gray-500 dark:text-gray-400">{fa.common.loading}</div>
           ) : list.length === 0 ? (
@@ -237,10 +236,11 @@ export default function CustomersPage() {
               ))}
             </ul>
           )}
-        </div>
+          </CardContent>
+        </Card>
 
-        <p className="mt-6 text-sm text-gray-500 dark:text-gray-400">
-          <Link href="/dashboard" className="text-primary-600 dark:text-primary-400 hover:underline">
+        <p className="mt-6 text-sm text-muted-foreground">
+          <Link href="/dashboard" className="text-accent hover:underline">
             {fa.customers.backToDashboard}
           </Link>
         </p>

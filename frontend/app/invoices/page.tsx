@@ -7,6 +7,9 @@ import { apiClient, getApiErrorMessage } from '@/lib/api'
 import { formatCurrency } from '@/lib/utils'
 import { fa } from '@/lib/fa'
 import { MOCK_CUSTOMERS, MOCK_INVOICES } from '@/lib/mock-data'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 
 interface InvoiceRow {
   id: number
@@ -122,16 +125,19 @@ export default function InvoicesPage() {
   const customerName = (id: number) => customers.find((c) => c.id === id)?.name ?? `#${id}`
 
   return (
-    <div className="min-h-screen bg-gray-100/80 dark:bg-gray-950">
+    <div className="min-h-screen bg-background">
       <Navbar />
       <main className="max-w-4xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
         <div className="mb-8 flex flex-wrap items-center gap-2">
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{fa.invoices.title}</h1>
-          {isMock && <span className="text-xs font-medium bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-200 px-2 py-1 rounded-full">نمایش نمونه</span>}
+          <h1 className="text-2xl font-bold text-foreground">{fa.invoices.title}</h1>
+          {isMock && <Badge variant="warning">نمایش نمونه</Badge>}
         </div>
 
-        <div className="card p-6 mb-8">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">{fa.invoices.addInvoice}</h2>
+        <Card className="mb-8">
+          <CardHeader>
+            <CardTitle>{fa.invoices.addInvoice}</CardTitle>
+          </CardHeader>
+          <CardContent>
           {customers.length === 0 && !loading ? (
             <p className="text-sm text-gray-500 dark:text-gray-400">
               {fa.invoices.noCustomersHint}{' '}
@@ -205,34 +211,31 @@ export default function InvoicesPage() {
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                 />
               </div>
-              <button
-                type="submit"
-                disabled={saving}
-                className="px-4 py-2.5 bg-primary-500 text-white rounded-xl hover:bg-primary-600 disabled:opacity-50 text-sm font-medium"
-              >
+              <Button type="submit" disabled={saving}>
                 {saving ? fa.invoices.addingInvoice : fa.invoices.addInvoice}
-              </button>
+              </Button>
             </form>
-          )}
-        </div>
+          </CardContent>
+        </Card>
 
-        <div className="card overflow-hidden">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white p-4 border-b border-gray-200 dark:border-gray-700">
-            {fa.invoices.listTitle}
-          </h2>
+        <Card className="overflow-hidden">
+          <CardHeader className="border-b border-border">
+            <CardTitle>{fa.invoices.listTitle}</CardTitle>
+          </CardHeader>
+          <CardContent className="p-0">
           {loading ? (
-            <div className="p-6 text-gray-500 dark:text-gray-400">{fa.common.loading}</div>
+            <div className="p-6 text-muted-foreground">{fa.common.loading}</div>
           ) : list.length === 0 ? (
-            <div className="p-6 text-gray-500 dark:text-gray-400">{fa.invoices.noInvoicesYet} {fa.invoices.addOneAbove}</div>
+            <div className="p-6 text-muted-foreground">{fa.invoices.noInvoicesYet} {fa.invoices.addOneAbove}</div>
           ) : (
-            <ul className="divide-y divide-gray-200 dark:divide-gray-700">
+            <ul className="divide-y divide-border">
               {list.map((inv) => (
                 <li key={inv.id} className="p-4 flex flex-wrap items-center justify-between gap-2">
                   <div>
-                    <p className="font-medium text-gray-900 dark:text-white">
+                    <p className="font-medium text-foreground">
                       {customerName(inv.customer_id)} · {formatCurrency(inv.amount)}
                     </p>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                    <p className="text-sm text-muted-foreground">
                       {fa.invoices.dueDate}: {inv.due_date} ·{' '}
                       <span className={STATUS_COLOR[inv.status]}>{STATUS_LABEL[inv.status]}</span>
                     </p>
@@ -240,15 +243,15 @@ export default function InvoicesPage() {
                   <div className="flex items-center gap-3">
                     {(inv.status === 'issued' || inv.status === 'overdue') && (
                       <>
-                        <button type="button" onClick={() => handleStatusChange(inv.id, 'paid')} className="text-sm text-emerald-600 dark:text-emerald-400 hover:underline">
+                        <Button size="sm" variant="ghost" onClick={() => handleStatusChange(inv.id, 'paid')} className="text-emerald-600 dark:text-emerald-400">
                           {fa.invoices.markPaid}
-                        </button>
-                        <button type="button" onClick={() => handleStatusChange(inv.id, 'cancelled')} className="text-sm text-gray-500 dark:text-gray-400 hover:underline">
+                        </Button>
+                        <Button size="sm" variant="ghost" onClick={() => handleStatusChange(inv.id, 'cancelled')} className="text-muted-foreground">
                           {fa.invoices.markCancelled}
-                        </button>
-                        <button type="button" onClick={() => handleDelete(inv.id)} className="text-sm text-red-600 dark:text-red-400 hover:underline">
+                        </Button>
+                        <Button size="sm" variant="ghost" onClick={() => handleDelete(inv.id)} className="text-red-600 dark:text-red-400">
                           {fa.invoices.remove}
-                        </button>
+                        </Button>
                       </>
                     )}
                   </div>
@@ -256,10 +259,11 @@ export default function InvoicesPage() {
               ))}
             </ul>
           )}
-        </div>
+          </CardContent>
+        </Card>
 
-        <p className="mt-6 text-sm text-gray-500 dark:text-gray-400">
-          <Link href="/dashboard" className="text-primary-600 dark:text-primary-400 hover:underline">
+        <p className="mt-6 text-sm text-muted-foreground">
+          <Link href="/dashboard" className="text-accent hover:underline">
             {fa.invoices.backToDashboard}
           </Link>
         </p>

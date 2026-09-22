@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useEffect, useMemo, useState, useRef } from 'react'
-import Button from '@/components/ui/Button'
+import { Button } from '@/components/ui/button'
 import { ThemeToggle } from '@/components/ThemeToggle'
 import { apiClient } from '@/lib/api'
 import { formatCurrency, formatNumber } from '@/lib/utils'
