@@ -7,6 +7,9 @@ import Navbar from '@/components/layout/Navbar'
 import { getApiErrorMessage } from '@/lib/api'
 import { fa } from '@/lib/fa'
 import { MOCK_EXPENSES_BY_CATEGORY, MOCK_INCOME_VS_EXPENSES } from '@/lib/mock-data'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 
 export default function ReportsPage() {
   const [expensesByCategory, setExpensesByCategory] = useState<any[]>([])
@@ -64,24 +67,19 @@ export default function ReportsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100/80 dark:bg-gray-950">
+    <div className="min-h-screen bg-background">
       <Navbar />
 
       <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
         <div className="px-4 py-6 sm:px-0">
           <div className="flex justify-between items-center mb-6 flex-wrap gap-2">
             <div className="flex items-center gap-2">
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">{fa.reports.title}</h2>
-              {isMock && <span className="text-xs font-medium bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-200 px-2 py-1 rounded-full">نمایش نمونه</span>}
+              <h2 className="text-2xl font-bold text-foreground">{fa.reports.title}</h2>
+              {isMock && <Badge variant="warning">نمایش نمونه</Badge>}
             </div>
-            <button
-              type="button"
-              onClick={handleExportTransactions}
-              disabled={exporting}
-              className="px-4 py-2.5 rounded-xl border border-gray-300 dark:border-gray-600 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-50"
-            >
+            <Button variant="outline" onClick={handleExportTransactions} disabled={exporting}>
               {exporting ? fa.reports.exporting : fa.reports.exportTransactionsCsv}
-            </button>
+            </Button>
           </div>
           {exportError && (
             <p className="mb-4 text-sm text-red-600 dark:text-red-400">{exportError}</p>
