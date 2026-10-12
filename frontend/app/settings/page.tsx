@@ -8,6 +8,7 @@ import Navbar from '@/components/layout/Navbar'
 import { useTheme, type Theme } from '@/contexts/ThemeContext'
 import { useToast } from '@/contexts/ToastContext'
 import { fa } from '@/lib/fa'
+import { Button } from '@/components/ui/button'
 
 export default function SettingsPage() {
   const router = useRouter()
@@ -102,12 +103,12 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100/80 dark:bg-gray-950">
+    <div className="min-h-screen bg-background">
       <Navbar />
 
       <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
         <div className="px-4 py-6 sm:px-0">
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">{fa.settings.title}</h2>
+          <h2 className="text-2xl font-bold text-foreground mb-6">{fa.settings.title}</h2>
 
           {loading ? (
             <div className="text-center py-12 text-gray-500 dark:text-gray-400">{fa.settings.loading}</div>
@@ -183,20 +184,12 @@ export default function SettingsPage() {
                       />
                     </div>
                     <div className="flex gap-2">
-                      <button
-                        type="submit"
-                        disabled={saving}
-                        className="px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 disabled:opacity-50 text-sm font-medium"
-                      >
+                      <Button type="submit" disabled={saving}>
                         {saving ? fa.settings.saving : fa.common.save}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => { setEditing(false); setForm({ email: user.email ?? '', username: user.username ?? '', full_name: user.full_name ?? '' }); }}
-                        className="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 text-sm font-medium"
-                      >
+                      </Button>
+                      <Button variant="outline" onClick={() => { setEditing(false); setForm({ email: user.email ?? '', username: user.username ?? '', full_name: user.full_name ?? '' }); }}>
                         {fa.common.cancel}
-                      </button>
+                      </Button>
                     </div>
                   </form>
                 ) : (
