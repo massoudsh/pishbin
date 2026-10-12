@@ -4,6 +4,7 @@ import { useState } from 'react'
 import Navbar from '@/components/layout/Navbar'
 import { apiClient } from '@/lib/api'
 import { fa } from '@/lib/fa'
+import { Button } from '@/components/ui/button'
 
 const TABS = [
   { id: 'cash', label: fa.investors.cashRevenue },
@@ -68,10 +69,10 @@ export default function InvestorsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-950">
+    <div className="min-h-screen bg-background">
       <Navbar />
       <main id="main-content" className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-        <h1 className="text-3xl font-bold text-white mb-2">
+        <h1 className="text-3xl font-bold text-foreground mb-2">
           {fa.investors.titleBefore}<span className="bg-gradient-to-r from-emerald-400 to-teal-400 bg-clip-text text-transparent">{fa.investors.titleHighlight}</span>{fa.investors.titleAfter}
         </h1>
         <p className="text-gray-400 mb-8">{fa.investors.subtitle}</p>
@@ -105,14 +106,9 @@ export default function InvestorsPage() {
                 <option>MRR</option>
               </select>
             </div>
-            <button
-              type="button"
-              onClick={handleExportCsv}
-              disabled={exporting}
-              className="px-4 py-2 rounded-md bg-gray-700 hover:bg-gray-600 text-white text-sm font-medium border border-gray-600 disabled:opacity-50"
-            >
+            <Button variant="outline" onClick={handleExportCsv} disabled={exporting}>
               {exporting ? fa.common.loading : fa.investors.exportCsv}
-            </button>
+            </Button>
           </div>
 
           <div className="p-4">

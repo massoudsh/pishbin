@@ -7,6 +7,7 @@ import Navbar from '@/components/layout/Navbar'
 import type { Account } from '@/lib/schemas/account'
 import type { CategoryOption } from '@/components/forms/TransactionForm'
 import { getApiErrorMessage } from '@/lib/api'
+import { Button } from '@/components/ui/button'
 
 interface ParseResult {
   amount: number | null
@@ -112,12 +113,12 @@ export default function BankingMessagesPage() {
   }, [loadAccountsAndCategories, loadMessages])
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background">
       <Navbar />
 
       <main className="max-w-4xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
         <div className="mb-8">
-          <h1 className="text-2xl font-bold text-gray-900">Banking messages</h1>
+          <h1 className="text-2xl font-bold text-foreground">Banking messages</h1>
           <p className="text-sm text-gray-600 mt-1">
             Paste a bank SMS or notification. We parse amount, date and description and suggest a cost category based on the content.
           </p>
@@ -138,22 +139,12 @@ export default function BankingMessagesPage() {
             />
             {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
             <div className="mt-3 flex flex-wrap gap-2">
-              <button
-                type="button"
-                onClick={handleParse}
-                disabled={loading || !rawText.trim()}
-                className="px-4 py-2 rounded-md bg-primary-600 text-white text-sm font-medium hover:bg-primary-700 disabled:opacity-50"
-              >
+              <Button onClick={handleParse} disabled={loading || !rawText.trim()}>
                 {loading ? 'Parsing...' : 'Parse & suggest category'}
-              </button>
-              <button
-                type="button"
-                onClick={handleSaveMessage}
-                disabled={loading || !rawText.trim()}
-                className="px-4 py-2 rounded-md border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
-              >
+              </Button>
+              <Button variant="outline" onClick={handleSaveMessage} disabled={loading || !rawText.trim()}>
                 Save message
-              </button>
+              </Button>
             </div>
           </div>
 

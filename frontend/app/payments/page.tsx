@@ -6,6 +6,8 @@ import Navbar from '@/components/layout/Navbar'
 import { apiClient, getApiErrorMessage } from '@/lib/api'
 import { fa } from '@/lib/fa'
 import { MOCK_ACCOUNTS, MOCK_PAYMENTS } from '@/lib/mock-data'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
 
 interface PaymentRow {
   id: number
@@ -114,12 +116,12 @@ export default function PaymentsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen bg-background">
       <Navbar />
       <main className="max-w-4xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
         <div className="mb-8 flex items-center gap-2 flex-wrap">
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{fa.payments.zarinpalTitle}</h1>
-          {isMock && <span className="text-xs font-medium bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-200 px-2 py-1 rounded-full">نمایش نمونه</span>}
+          <h1 className="text-2xl font-bold text-foreground">{fa.payments.zarinpalTitle}</h1>
+          {isMock && <Badge variant="warning">نمایش نمونه</Badge>}
           <p className="mt-1 w-full text-sm text-gray-600 dark:text-gray-400">
             Request a payment and complete it on ZarinPal. You will be redirected back here after payment.
           </p>
@@ -162,13 +164,9 @@ export default function PaymentsPage() {
                 onChange={(e) => setDescription(e.target.value)}
               />
             </div>
-            <button
-              type="submit"
-              disabled={requesting}
-              className="px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 disabled:opacity-50 text-sm font-medium"
-            >
+            <Button type="submit" disabled={requesting}>
               {requesting ? 'Redirecting...' : 'Pay with ZarinPal'}
-            </button>
+            </Button>
           </form>
         </div>
 

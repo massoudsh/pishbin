@@ -7,6 +7,8 @@ import { apiClient, getApiErrorMessage } from '@/lib/api'
 import { formatCurrency } from '@/lib/utils'
 import { fa } from '@/lib/fa'
 import { MOCK_ACCOUNTS } from '@/lib/mock-data'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
 
 interface ReconciliationMatch {
   row_index: number
@@ -81,12 +83,12 @@ export default function ReconciliationPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100/80 dark:bg-gray-950">
+    <div className="min-h-screen bg-background">
       <Navbar />
       <main className="max-w-4xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
         <div className="mb-8 flex flex-wrap items-center gap-2">
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{fa.reconciliation.title}</h1>
-          {isMock && <span className="text-xs font-medium bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-200 px-2 py-1 rounded-full">نمایش نمونه</span>}
+          <h1 className="text-2xl font-bold text-foreground">{fa.reconciliation.title}</h1>
+          {isMock && <Badge variant="warning">نمایش نمونه</Badge>}
         </div>
 
         <div className="card p-6 mb-8">
@@ -134,13 +136,9 @@ export default function ReconciliationPage() {
               />
               <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">{fa.reconciliation.csvHint}</p>
             </div>
-            <button
-              type="submit"
-              disabled={uploading}
-              className="px-4 py-2.5 bg-primary-500 text-white rounded-xl hover:bg-primary-600 disabled:opacity-50 text-sm font-medium"
-            >
+            <Button type="submit" disabled={uploading}>
               {uploading ? fa.reconciliation.uploading : fa.reconciliation.upload}
-            </button>
+            </Button>
           </form>
         </div>
 
