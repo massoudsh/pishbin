@@ -12,6 +12,9 @@ import type { Account } from '@/lib/schemas/account'
 import type { Transaction } from '@/lib/schemas/transaction'
 import type { CategoryOption } from '@/components/forms/TransactionForm'
 import { MOCK_ACCOUNTS, MOCK_TRANSACTIONS } from '@/lib/mock-data'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { Card, CardContent } from '@/components/ui/card'
 
 export default function TransactionsPage() {
   const [transactions, setTransactions] = useState<Transaction[]>([])
@@ -138,31 +141,21 @@ export default function TransactionsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100/80 dark:bg-gray-950">
+    <div className="min-h-screen bg-background">
       <Navbar />
 
       <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
         <div className="px-4 py-6 sm:px-0">
           <div className="flex justify-between items-center mb-6 flex-wrap gap-2">
             <div className="flex items-center gap-2">
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">{fa.transactions.title}</h2>
-              {isMock && <span className="text-xs font-medium bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-200 px-2 py-1 rounded-full">نمایش نمونه</span>}
+              <h2 className="text-2xl font-bold text-foreground">{fa.transactions.title}</h2>
+              {isMock && <Badge variant="warning">نمایش نمونه</Badge>}
             </div>
             <div className="flex gap-2 flex-wrap">
-              <button
-                type="button"
-                onClick={() => setImportOpen(true)}
-                className="px-4 py-2.5 rounded-xl border border-gray-300 dark:border-gray-600 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
-              >
+              <Button variant="outline" onClick={() => setImportOpen(true)}>
                 {fa.transactions.importCsv}
-              </button>
-              <button
-                type="button"
-                onClick={openCreate}
-                className="bg-primary-500 text-white px-4 py-2.5 rounded-xl hover:bg-primary-600 font-medium text-sm shadow-sm"
-              >
-                {fa.transactions.addTransaction}
-              </button>
+              </Button>
+              <Button onClick={openCreate}>{fa.transactions.addTransaction}</Button>
             </div>
           </div>
           <div className="flex flex-wrap gap-3 mb-4 p-3 rounded-xl bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700">
@@ -196,9 +189,7 @@ export default function TransactionsPage() {
             </select>
             <input type="number" placeholder="حداقل مبلغ" value={filters.amount_min ?? ''} onChange={(e) => setFilters((f) => ({ ...f, amount_min: e.target.value ? Number(e.target.value) : undefined }))} className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 w-28" />
             <input type="number" placeholder="حداکثر مبلغ" value={filters.amount_max ?? ''} onChange={(e) => setFilters((f) => ({ ...f, amount_max: e.target.value ? Number(e.target.value) : undefined }))} className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 w-28" />
-            <button type="button" onClick={() => loadTransactions()} className="px-4 py-2 rounded-lg bg-primary-600 text-white text-sm font-medium hover:bg-primary-700">
-              اعمال فیلتر
-            </button>
+            <Button size="sm" onClick={() => loadTransactions()}>اعمال فیلتر</Button>
           </div>
 
           {loading ? (
@@ -211,8 +202,9 @@ export default function TransactionsPage() {
               onAction={openCreate}
             />
           ) : (
-            <div className="card overflow-hidden">
-              <ul className="divide-y divide-gray-200 dark:divide-gray-700">
+            <Card className="overflow-hidden">
+              <CardContent className="p-0">
+              <ul className="divide-y divide-border">
                 {transactions.map((transaction) => (
                   <li key={transaction.id} className="px-6 py-4">
                     <div className="flex items-center justify-between gap-4">
@@ -251,7 +243,8 @@ export default function TransactionsPage() {
                   </li>
                 ))}
               </ul>
-            </div>
+              </CardContent>
+            </Card>
           )}
         </div>
       </main>
