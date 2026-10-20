@@ -3,7 +3,7 @@
 import { useState, useCallback, useEffect } from 'react'
 import { AccountCreateSchema, AccountUpdateSchema, type AccountCreate, type AccountUpdate, type Account } from '@/lib/schemas/account'
 import { apiClient } from '@/lib/api'
-import Button from '@/components/ui/Button'
+import Button from '@/components/ui/form-button'
 
 const ACCOUNT_TYPES = [
   { value: 'checking', label: 'Checking' },

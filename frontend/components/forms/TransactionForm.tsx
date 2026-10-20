@@ -10,7 +10,7 @@ import {
 } from '@/lib/schemas/transaction'
 import type { Account } from '@/lib/schemas/account'
 import { apiClient } from '@/lib/api'
-import Button from '@/components/ui/Button'
+import Button from '@/components/ui/form-button'
 
 const TRANSACTION_TYPES = [
   { value: 'income', label: 'Income' },

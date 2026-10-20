@@ -345,6 +345,11 @@ function DashboardPageContent() {
             </label>
           </div>
 
+          <Link href="/decisions" className="mb-6 block rounded-2xl border border-accent/30 bg-accent/10 p-5 text-foreground hover:bg-accent/20">
+            <strong className="block text-lg">میز تصمیم کسب‌وکار</strong>
+            <span className="mt-2 block text-sm">تقویم نقدینگی، آزمایش خرید و اولویت پیگیری مطالبات را با داده‌های واقعی بررسی کنید.</span>
+          </Link>
+
           {widgetIds.includes('kpi') && <KpiStripExact kpis={founderOverview!.kpis} />}
 
           {widgetIds.includes('burn') && (

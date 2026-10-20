@@ -301,7 +301,7 @@ export default function ChecksPage() {
           ) : (
             <ul className="divide-y divide-border">
               {list.map((c) => (
-                <li key={c.id} className="p-4 flex flex-wrap items-center justify-between gap-2">
+                <li key={c.id} id={`check-${c.id}`} className="scroll-mt-24 p-4 flex flex-wrap items-center justify-between gap-2">
                   <div>
                     <p className="font-medium text-foreground">
                       {c.counterparty_name} · {formatCurrency(c.amount)} ({c.direction === 'received' ? fa.checks.received : fa.checks.issued})

@@ -9,7 +9,7 @@ import {
   type Goal,
 } from '@/lib/schemas/goal'
 import { apiClient } from '@/lib/api'
-import Button from '@/components/ui/Button'
+import Button from '@/components/ui/form-button'
 
 const GOAL_TYPES = [
   { value: 'savings', label: 'Savings' },

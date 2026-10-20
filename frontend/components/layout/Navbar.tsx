@@ -29,9 +29,8 @@ export default function Navbar() {
 
   const navItems = useMemo(
     () => [
+      { href: '/decisions', label: 'میز تصمیم' },
       { href: '/dashboard', label: fa.nav.overview },
-      { href: '/reports', label: fa.nav.runway },
-      { href: '/reports', label: fa.nav.revenue },
       { href: '/transactions', label: fa.nav.expenses },
       { href: '/reports', label: fa.nav.reports },
       { href: '/investors', label: fa.nav.investors },
@@ -96,7 +95,7 @@ export default function Navbar() {
               )}
             </Link>
 
-            <div className="hidden sm:flex items-center gap-1">
+            <div className="hidden xl:flex max-w-[50vw] items-center gap-1 overflow-x-auto whitespace-nowrap">
               {navItems.map((item, i) => {
                 const active = pathname === item.href
                 return (
@@ -177,7 +176,7 @@ export default function Navbar() {
             <ThemeToggle />
             <button
               type="button"
-              className="sm:hidden p-2 rounded-md text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-primary-500"
+              className="xl:hidden p-2 rounded-md text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-primary-500"
               aria-expanded={mobileMenuOpen}
               aria-label="Toggle menu"
               onClick={() => setMobileMenuOpen((o) => !o)}
@@ -219,7 +218,7 @@ export default function Navbar() {
         </div>
 
         {mobileMenuOpen && (
-          <div className="sm:hidden border-t border-gray-200 dark:border-gray-700 py-4">
+          <div className="xl:hidden border-t border-gray-200 dark:border-gray-700 py-4">
             <div className="flex flex-col gap-1">
               {navItems.map((item, i) => {
                 const active = pathname === item.href

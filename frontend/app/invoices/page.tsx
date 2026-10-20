@@ -215,6 +215,7 @@ export default function InvoicesPage() {
                 {saving ? fa.invoices.addingInvoice : fa.invoices.addInvoice}
               </Button>
             </form>
+          )}
           </CardContent>
         </Card>
 
@@ -230,7 +231,7 @@ export default function InvoicesPage() {
           ) : (
             <ul className="divide-y divide-border">
               {list.map((inv) => (
-                <li key={inv.id} className="p-4 flex flex-wrap items-center justify-between gap-2">
+                <li key={inv.id} id={`invoice-${inv.id}`} className="scroll-mt-24 p-4 flex flex-wrap items-center justify-between gap-2">
                   <div>
                     <p className="font-medium text-foreground">
                       {customerName(inv.customer_id)} · {formatCurrency(inv.amount)}

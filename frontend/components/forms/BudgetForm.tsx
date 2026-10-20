@@ -9,7 +9,7 @@ import {
   type Budget,
 } from '@/lib/schemas/budget'
 import { apiClient } from '@/lib/api'
-import Button from '@/components/ui/Button'
+import Button from '@/components/ui/form-button'
 
 const PERIODS = [
   { value: 'weekly', label: 'Weekly' },

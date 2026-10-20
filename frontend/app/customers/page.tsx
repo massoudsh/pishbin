@@ -195,7 +195,7 @@ export default function CustomersPage() {
           ) : (
             <ul className="divide-y divide-gray-200 dark:divide-gray-700">
               {list.map((c) => (
-                <li key={c.id} className="p-4">
+                <li key={c.id} id={`customer-${c.id}`} className="scroll-mt-24 p-4">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div>
                       <p className="font-medium text-gray-900 dark:text-white">{c.name}</p>
