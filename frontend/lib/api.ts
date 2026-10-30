@@ -432,6 +432,7 @@ export class ApiClient {
       check_number: string | null;
       sayad_id: string | null;
       due_date: string;
+      settlement_transaction_id: number | null;
       status: 'pending' | 'cleared' | 'bounced' | 'voided';
       description: string | null;
       created_at: string | null;
@@ -456,6 +457,11 @@ export class ApiClient {
   async updateCheck(id: number, data: Partial<{ status: string; direction: string; counterparty_name: string; amount: number; bank_name: string; check_number: string; sayad_id: string; due_date: string; description: string }>) {
     const response = await this.client.put(`/checks/${id}`, data);
     return response.data;
+  }
+
+  async settleCheck(id: number, data: { settlement_date: string; transaction_id?: number }) {
+    const response = await this.client.post(`/checks/${id}/settle`, data);
+    return response.data as { settlement_transaction_id: number };
   }
 
   async deleteCheck(id: number) {
@@ -524,6 +530,7 @@ export class ApiClient {
       issue_date: string;
       due_date: string;
       paid_date: string | null;
+      settlement_transaction_id: number | null;
       status: 'issued' | 'paid' | 'overdue' | 'cancelled';
       description: string | null;
       created_at: string | null;
@@ -538,6 +545,11 @@ export class ApiClient {
   async updateInvoice(id: number, data: Partial<{ customer_id: number; amount: number; issue_date: string; due_date: string; paid_date: string; status: string; description: string }>) {
     const response = await this.client.put(`/invoices/${id}`, data);
     return response.data;
+  }
+
+  async settleInvoice(id: number, data: { account_id: number; settlement_date: string; transaction_id?: number }) {
+    const response = await this.client.post(`/invoices/${id}/settle`, data);
+    return response.data as { settlement_transaction_id: number };
   }
 
   async deleteInvoice(id: number) {

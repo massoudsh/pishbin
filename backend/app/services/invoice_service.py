@@ -20,7 +20,7 @@ class InvoiceService:
     def _sync_overdue(self, invoice: Invoice) -> Invoice:
         """Flip an unpaid invoice past its due date to `overdue` on read."""
         if invoice.status == InvoiceStatus.ISSUED and invoice.due_date < date.today():
-            invoice.status = InvoiceStatus.OVERDUE
+            self.db.query(Invoice).filter(Invoice.id == invoice.id, Invoice.status == InvoiceStatus.ISSUED).update({Invoice.status: InvoiceStatus.OVERDUE}, synchronize_session=False)
             self.db.commit()
             self.db.refresh(invoice)
         return invoice
@@ -61,15 +61,19 @@ class InvoiceService:
     def update_invoice(
         self, invoice_id: int, invoice_data: InvoiceUpdate, user_id: int
     ) -> Optional[Invoice]:
-        """Update an existing invoice. Marking status=paid auto-fills paid_date if not given."""
+        """Update open invoices; ledger settlements are immutable."""
         invoice = self.db.query(Invoice).filter(
             Invoice.id == invoice_id,
             Invoice.user_id == user_id,
-        ).first()
+        ).populate_existing().with_for_update().first()
         if not invoice:
             return None
 
         update_data = invoice_data.model_dump(exclude_unset=True)
+        if invoice.settlement_transaction_id or invoice.status == InvoiceStatus.PAID:
+            raise ValueError("Settled invoices cannot be edited")
+        if update_data.get("status") == InvoiceStatus.PAID or "paid_date" in update_data:
+            raise ValueError("Use the settlement endpoint to record payment in the ledger")
         if "customer_id" in update_data:
             customer = self.db.query(Customer).filter(
                 Customer.id == update_data["customer_id"],
@@ -81,9 +85,6 @@ class InvoiceService:
         for field, value in update_data.items():
             setattr(invoice, field, value)
 
-        if invoice.status == InvoiceStatus.PAID and not invoice.paid_date:
-            invoice.paid_date = date.today()
-
         self.db.commit()
         self.db.refresh(invoice)
         return invoice
@@ -93,7 +94,7 @@ class InvoiceService:
         invoice = self.db.query(Invoice).filter(
             Invoice.id == invoice_id,
             Invoice.user_id == user_id,
-        ).first()
+        ).populate_existing().with_for_update().first()
         if not invoice:
             return False, None
 

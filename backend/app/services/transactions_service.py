@@ -7,6 +7,8 @@ from sqlalchemy.orm import Session
 from sqlalchemy import and_
 from app.models.transaction import Transaction, TransactionType
 from app.models.account import Account
+from app.models.invoice import Invoice
+from app.models.check import Check
 from app.schemas.transaction import TransactionCreate, TransactionUpdate
 from decimal import Decimal
 
@@ -91,7 +93,7 @@ class TransactionsService:
         account = self.db.query(Account).filter(
             Account.id == transaction_data.account_id,
             Account.user_id == user_id
-        ).first()
+        ).populate_existing().with_for_update().first()
         if not account:
             raise ValueError("Account not found")
         amount = Decimal(str(transaction_data.amount))
@@ -120,6 +122,10 @@ class TransactionsService:
         self.db.refresh(db_transaction)
         return db_transaction
     
+    def _ensure_not_settlement(self, transaction_id: int) -> None:
+        if self.db.query(Invoice.id).filter(Invoice.settlement_transaction_id == transaction_id).first() or self.db.query(Check.id).filter(Check.settlement_transaction_id == transaction_id).first():
+            raise ValueError("Settlement transactions cannot be edited or deleted")
+
     def update_transaction(
         self,
         transaction_id: int,
@@ -127,9 +133,10 @@ class TransactionsService:
         user_id: int
     ) -> Optional[Transaction]:
         """Update an existing transaction."""
-        transaction = self.get_transaction(transaction_id, user_id)
+        transaction = self.db.query(Transaction).filter(Transaction.id == transaction_id, Transaction.user_id == user_id).populate_existing().with_for_update().first()
         if not transaction:
             return None
+        self._ensure_not_settlement(transaction_id)
 
         # Capture old values before any mutation
         old_amount = Decimal(str(transaction.amount))
@@ -149,7 +156,7 @@ class TransactionsService:
             setattr(transaction, field, value)
 
         # Revert old impact from the old account
-        old_account = self.db.query(Account).filter(Account.id == old_account_id).first()
+        old_account = self.db.query(Account).filter(Account.id == old_account_id).populate_existing().with_for_update().first()
         if old_account:
             if old_type.value == "income":
                 old_account.balance -= old_amount
@@ -161,7 +168,7 @@ class TransactionsService:
             new_account = self.db.query(Account).filter(
                 Account.id == new_account_id,
                 Account.user_id == user_id,
-            ).first()
+            ).populate_existing().with_for_update().first()
             if not new_account:
                 self.db.rollback()
                 raise ValueError("New account not found")
@@ -180,12 +187,13 @@ class TransactionsService:
     
     def delete_transaction(self, transaction_id: int, user_id: int) -> bool:
         """Delete a transaction and update account balance."""
-        transaction = self.get_transaction(transaction_id, user_id)
+        transaction = self.db.query(Transaction).filter(Transaction.id == transaction_id, Transaction.user_id == user_id).populate_existing().with_for_update().first()
         if not transaction:
             return False
-        
+        self._ensure_not_settlement(transaction_id)
+
         # Revert balance change
-        account = transaction.account
+        account = self.db.query(Account).filter(Account.id == transaction.account_id, Account.user_id == user_id).populate_existing().with_for_update().first()
         amount = Decimal(str(transaction.amount))
         if transaction.transaction_type.value == "income":
             account.balance -= amount

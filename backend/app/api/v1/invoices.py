@@ -10,7 +10,9 @@ from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.dependencies import get_current_user
 from app.models.user import User
-from app.schemas.invoice import InvoiceCreate, InvoiceUpdate, InvoiceOut
+from app.schemas.invoice import InvoiceCreate, InvoiceUpdate, InvoiceOut, InvoiceSettlement
+from app.models.invoice import Invoice
+from app.services.settlement_service import SettlementService
 from app.services.invoice_service import InvoiceService
 from app.services.forecast_service import ForecastService
 
@@ -74,14 +76,35 @@ async def update_invoice(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """Update an invoice (e.g. mark paid/cancelled, or edit before it's settled)."""
+    """Edit or cancel an unsettled invoice; payment requires the settlement endpoint."""
     service = InvoiceService(db)
     existing = service.get_invoice(invoice_id, current_user.id)
     if not existing:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Invoice not found")
-    invoice = service.update_invoice(invoice_id, invoice_data, current_user.id)
+    try:
+        invoice = service.update_invoice(invoice_id, invoice_data, current_user.id)
+    except ValueError as exc:
+        db.rollback()
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
     if not invoice:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Customer not found")
+    return invoice
+
+
+@router.post("/{invoice_id}/settle", response_model=InvoiceOut)
+async def settle_invoice(
+    invoice_id: int,
+    data: InvoiceSettlement,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    try:
+        invoice = SettlementService(db).settle(Invoice, invoice_id, current_user.id, data.settlement_date, data.account_id, data.transaction_id)
+    except ValueError as exc:
+        db.rollback()
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    if not invoice:
+        raise HTTPException(status_code=404, detail="Invoice not found")
     return invoice
 
 

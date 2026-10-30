@@ -103,8 +103,8 @@ Multi-business/multi-branch workspaces. Every user gets one default business aut
 }
 ```
   Returns `409` with `{ "detail": { "code": "possible_duplicate", "existing_id", "existing_date" } }` if a likely duplicate is found; pass `?force=true` to create anyway.
-- **PUT** `/transactions/{id}`
-- **DELETE** `/transactions/{id}`
+- **PUT** `/transactions/{id}` — `409` if linked to an invoice/check settlement.
+- **DELETE** `/transactions/{id}` — `409` if linked to an invoice/check settlement.
 - **GET** `/transactions/export?start_date=&end_date=` — CSV download
 - **POST** `/transactions/import?account_id=1` — multipart CSV upload; headers `date, amount, type, description`
 
@@ -135,9 +135,29 @@ Cheque tracking (issued and received) as a first-class entity, with Sayad tracki
 - **GET** `/checks?status_filter=&account_id=` — list current user's cheques, sorted by due date
 - **GET** `/checks/{id}`
 - **POST** `/checks` — body: `{ account_id, direction: "issued"|"received", counterparty_name, amount, bank_name?, check_number?, sayad_id?, due_date, description? }`. `404` if `account_id` doesn't belong to the current user.
-- **PUT** `/checks/{id}` — partial update, incl. `status: "pending"|"cleared"|"bounced"|"voided"`
-- **DELETE** `/checks/{id}` — `400` if the cheque is already `cleared`/`bounced` (void it instead, to preserve the audit trail)
+- **PUT** `/checks/{id}` — partial update of an unsettled cheque; status-only `cleared` and edits to cleared/settled cheques return `409`.
+- **POST** `/checks/{id}/settle` — body: `{ settlement_date: "YYYY-MM-DD", transaction_id?: 123 }`; uses the cheque's fixed account. Pending/bounced cheques can settle; voided and historical unlinked cleared cheques cannot.
+- **DELETE** `/checks/{id}` — `400` if the cheque is already `cleared`/`bounced`; cleared settlement history cannot be voided or edited.
 - **GET** `/checks/cash-flow-forecast?days=30` — pending cheques due within the window, as known-amount cash events: `{ days, events: [{ check_id, due_date, direction, amount, counterparty_name }], total_inflow, total_outflow, net }`
+
+### Invoices (`/invoices`)
+- **GET** `/invoices?status_filter=&customer_id=` — owned invoices; issued invoices past due become overdue on read.
+- **GET** `/invoices/{id}`
+- **POST** `/invoices` — body: `{ customer_id, amount, issue_date, due_date, description? }`.
+- **PUT** `/invoices/{id}` — partial update before payment; setting `paid` or supplying `paid_date` returns `409`. Paid/settled invoices are immutable.
+- **POST** `/invoices/{id}/settle` — body: `{ account_id, settlement_date: "YYYY-MM-DD", transaction_id?: 123 }`; settles issued/overdue invoices and records `paid_date`.
+- **DELETE** `/invoices/{id}` — `400` once paid.
+
+#### Settlement contract
+Both settlement endpoints return the document including nullable `settlement_transaction_id`. Missing/foreign documents return `404`, invalid request shapes `422`, and business conflicts `409`.
+
+- Without `transaction_id`, atomically create an income transaction (invoice/received cheque) or expense transaction (issued cheque), adjust the account balance, and mark the document paid/cleared. No bank transfer is executed.
+- With `transaction_id`, link an existing owned transaction matching account, whole amount, direction and Tehran calendar day, without changing balance again. A transaction can belong to only one invoice or cheque settlement.
+- Account must be active, owned, denominated in IRT and of type checking/savings/other. Document amounts are positive whole toman with at most 14 digits; new postings and resulting balances must fit the existing ledger's `Numeric(10,2)` range.
+- Dates cannot be in the future (Tehran); invoice payment cannot precede issue date. Repeating the same account/date/link is idempotent; conflicting replays return `409`.
+- Linked transactions cannot be edited/deleted. Accounts with settlement history cannot be deleted or have balance/currency/type overwritten; deleting a customer with paid/settled invoices returns `409`.
+- Migration `20261030_settlement` adds nullable unique restricted transaction links; legacy paid/cleared records retain null links and are not automatically reposted. Partial payment, reversals, automatic matching and invoice/cheque receipt-overlap resolution are not implemented.
+- SQLite/API and migration tests pass, including PostgreSQL offline SQL rendering. Live PostgreSQL concurrency and production migration are not verified/applied.
 
 ### Reconciliation (`/reconciliation`)
 Automated matching of an uploaded bank statement against transactions already recorded in the system (read-only — never creates, updates, or deletes a transaction).

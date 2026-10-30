@@ -6,7 +6,7 @@ import Navbar from '@/components/layout/Navbar'
 import { apiClient, getApiErrorMessage } from '@/lib/api'
 import { formatCurrency } from '@/lib/utils'
 import { fa } from '@/lib/fa'
-import { MOCK_ACCOUNTS, MOCK_CHECKS } from '@/lib/mock-data'
+import SettlementForm from '@/components/forms/SettlementForm'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -21,6 +21,7 @@ interface CheckRow {
   check_number: string | null
   sayad_id: string | null
   due_date: string
+  settlement_transaction_id: number | null
   status: 'pending' | 'cleared' | 'bounced' | 'voided'
   description: string | null
 }
@@ -44,7 +45,7 @@ export default function ChecksPage() {
   const [accounts, setAccounts] = useState<Array<{ id: number; name: string; currency: string }>>([])
   const [forecast, setForecast] = useState<ForecastData | null>(null)
   const [loading, setLoading] = useState(true)
-  const [isMock, setIsMock] = useState(false)
+  const [settlingId, setSettlingId] = useState<number | null>(null)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [form, setForm] = useState({
@@ -65,7 +66,7 @@ export default function ChecksPage() {
 
   async function load() {
     setLoading(true)
-    setIsMock(false)
+    setError('')
     try {
       const [checks, acc, fc] = await Promise.all([
         apiClient.getChecks(),
@@ -75,11 +76,11 @@ export default function ChecksPage() {
       setList(Array.isArray(checks) ? (checks as CheckRow[]) : [])
       setAccounts(Array.isArray(acc) ? acc.map((a: { id: number; name: string; currency: string }) => ({ id: a.id, name: a.name, currency: a.currency })) : [])
       setForecast(fc)
-    } catch {
-      setList(MOCK_CHECKS as CheckRow[])
-      setAccounts(MOCK_ACCOUNTS.map((a) => ({ id: a.id, name: a.name, currency: a.currency })))
+    } catch (err) {
+      setList([])
+      setAccounts([])
       setForecast(null)
-      setIsMock(true)
+      setError(getApiErrorMessage(err))
     } finally {
       setLoading(false)
     }
@@ -143,9 +144,9 @@ export default function ChecksPage() {
       <main className="max-w-4xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
         <div className="mb-8 flex flex-wrap items-center gap-2">
           <h1 className="text-2xl font-bold text-foreground">{fa.checks.title}</h1>
-          {isMock && <Badge variant="warning">نمایش نمونه</Badge>}
         </div>
 
+        {error && <div role="alert" className="mb-4 text-destructive">{error} <Button variant="outline" onClick={load} disabled={loading}>دریافت دوباره</Button></div>}
         {forecast && (
           <Card className="mb-8">
             <CardHeader><CardTitle>{fa.checks.upcomingForecastTitle}</CardTitle></CardHeader>
@@ -177,11 +178,6 @@ export default function ChecksPage() {
           <CardContent>
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">{fa.checks.addCheck}</h2>
           <form onSubmit={handleSubmit} className="space-y-4">
-            {error && (
-              <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 px-4 py-3 rounded-md text-sm">
-                {error}
-              </div>
-            )}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{fa.checks.account}</label>
@@ -314,7 +310,7 @@ export default function ChecksPage() {
                   <div className="flex items-center gap-3">
                     {c.status === 'pending' && (
                       <>
-                        <Button size="sm" variant="ghost" onClick={() => handleStatusChange(c.id, 'cleared')} className="text-emerald-600 dark:text-emerald-400">
+                        <Button size="sm" variant="ghost" onClick={() => setSettlingId(c.id)} className="text-emerald-600 dark:text-emerald-400">
                           {fa.checks.markCleared}
                         </Button>
                         <Button size="sm" variant="ghost" onClick={() => handleStatusChange(c.id, 'bounced')} className="text-amber-600 dark:text-amber-400">
@@ -328,7 +324,15 @@ export default function ChecksPage() {
                         </Button>
                       </>
                     )}
+                    {c.status === 'bounced' && <Button size="sm" variant="ghost" onClick={() => setSettlingId(c.id)}>{fa.checks.markCleared}</Button>}
                   </div>
+                  {c.settlement_transaction_id && <Link href="/transactions" className="text-sm text-accent">تراکنش تسویه #{c.settlement_transaction_id}</Link>}
+                  {c.status === 'cleared' && !c.settlement_transaction_id && <Badge variant="warning">تسویه قدیمی بدون پیوند دفتر؛ نیازمند تطبیق</Badge>}
+                  {settlingId === c.id && <SettlementForm key={c.id} amount={c.amount} direction={c.direction === 'received' ? 'income' : 'expense'} accountName={accountName(c.account_id)} onCancel={() => setSettlingId(null)} onSubmit={async data => {
+                    await apiClient.settleCheck(c.id, { settlement_date: data.settlement_date, transaction_id: data.transaction_id })
+                    setSettlingId(null)
+                    await load()
+                  }} />}
                 </li>
               ))}
             </ul>

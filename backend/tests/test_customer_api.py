@@ -62,7 +62,7 @@ def test_customer_score_reflects_late_invoices_and_bounced_checks(client: TestCl
     businesses = client.get(f"{API}/businesses/", headers=headers).json()
     business_id = businesses[0]["id"]
     account_id = client.post(f"{API}/accounts/", json={
-        "business_id": business_id, "name": "حساب", "account_type": "checking",
+        "business_id": business_id, "name": "حساب", "account_type": "checking", "currency": "IRT",
     }, headers=headers).json()["id"]
 
     # Paid invoice, 5 days late.
@@ -76,7 +76,7 @@ def test_customer_score_reflects_late_invoices_and_bounced_checks(client: TestCl
     assert inv_resp.status_code == 201, inv_resp.text
     invoice_id = inv_resp.json()["id"]
     paid_date = (date.today() - timedelta(days=5)).isoformat()
-    resp = client.put(f"{API}/invoices/{invoice_id}", json={"status": "paid", "paid_date": paid_date}, headers=headers)
+    resp = client.post(f"{API}/invoices/{invoice_id}/settle", json={"account_id": account_id, "settlement_date": paid_date}, headers=headers)
     assert resp.status_code == 200, resp.text
 
     # One bounced check, one cleared check, both received from this customer.

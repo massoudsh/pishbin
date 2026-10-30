@@ -62,6 +62,9 @@ class CustomerService:
         customer = self.get_customer(customer_id, user_id)
         if not customer:
             return False
+        invoices = self.db.query(Invoice).filter(Invoice.customer_id == customer_id).populate_existing().with_for_update().all()
+        if any(invoice.settlement_transaction_id or invoice.status == InvoiceStatus.PAID for invoice in invoices):
+            raise ValueError("Customers with settled invoices cannot be deleted")
         self.db.delete(customer)
         self.db.commit()
         return True

@@ -44,8 +44,8 @@ The new desk consumes existing authenticated GET endpoints under `/api/v1`: `/ac
 | Existing flow | Endpoint family | Source-review finding |
 | --- | --- | --- |
 | Account setup | `/businesses`, `/accounts` | Account creation now loads owned businesses, selects the default (or sole business), and sends the required positive `business_id`. Failed/empty business loads block creation; edits retain their existing business. Decimal-string balances from the backend are accepted and validated. Live-backend validation remains outstanding. |
-| Receivable lifecycle | `/customers`, `/invoices`, `/customers/{id}/score` | Marking paid updates invoice state/date, not the bank balance or ledger. Do not describe it as a reconciled cash receipt. |
-| Check lifecycle | `/checks`, `/checks/cash-flow-forecast` | Changing check state does not itself create a ledger transaction or adjust balances. |
+| Receivable lifecycle | `/customers`, `/invoices`, `/customers/{id}/score`, `/invoices/{id}/settle` | Explicit settlement posts a ledger entry and adjusts balance atomically, or links an existing matching entry without adjusting twice. Status-only payment is rejected; legacy paid records require reconciliation. No bank transfer is executed. |
+| Check lifecycle | `/checks`, `/checks/cash-flow-forecast`, `/checks/{id}/settle` | Explicit clearing posts income/expense or links a matching existing transaction; linked history is immutable. Pending/bounced cheques can settle; historical unlinked cleared cheques are not automatically reposted. |
 | Forecasting | `/dashboard/cash-flow-forecast`, `/alerts/cash-flow` | Existing backend forecast combines account balances, invoice/check events and historical trends; mixed currencies and duplicate receipt representation need reconciliation before stronger reliability claims. |
 | Bank reconciliation | `/reconciliation/bank-statement` | Read-only CSV matching, not autonomous bank synchronization. |
 | Bank messages | `/banking-messages` | Parsing/import is separate from reviewed transaction creation. |
@@ -67,7 +67,7 @@ The new desk consumes existing authenticated GET endpoints under `/api/v1`: `/ac
 
 ## Release priorities and business model hypothesis
 
-Before a production pilot: validate the repaired account/business onboarding and auth refresh/route guarding against the actual backend. Currency consistency, settlement-to-ledger linkage and stable complete data loading remain open implementation priorities.
+Before a production pilot: validate repaired account/business onboarding, auth recovery and settlement against live PostgreSQL, including concurrent attempts, and apply the reviewed settlement migration through deployment. Explicit settlement-to-ledger linkage is implemented and locally tested; partial payments, reversals, invoice/check overlap, currency consistency and stable complete data loading remain open.
 
 Then interview 5–10 owners using their existing reconciliation process: can they locate a real shortage, explain its cause and select an action without assistance? Compare this with their current accounting report, not merely a polished screenshot.
 
@@ -75,6 +75,6 @@ A subscription for a daily decision workspace is a hypothesis worth testing afte
 
 ## Validation performed
 
-Thirty-four passing checks across calculation/validation tests, account schemas, in-memory Axios authentication scenarios and hook-stubbed route-guard unit tests; whole-frontend TypeScript checking, focused ESLint and whitespace checks. Repaired invoice JSX, case-conflicting Button wrapper imports, business selection/payload, route loading guard and refresh handling. No production build, browser/visual test, deployment, live payment test or authenticated backend integration test was performed.
+Thirty-eight frontend checks pass across calculations, account schemas, in-memory Axios authentication/settlement scenarios and hook-stubbed route guards; whole-frontend TypeScript, focused ESLint and whitespace checks pass. Fifty-one backend tests pass against isolated SQLite, covering settlement replay, existing-entry linking, ownership, immutability, rollback and migration upgrade/downgrade; PostgreSQL migration SQL is checked offline. No production build, browser/visual test, deployment, live payment test or live PostgreSQL concurrency test was performed. The settlement migration is included, not applied to production.
 
 Image briefs are in `docs/decision-desk-image-prompts.md`; the interface works without generated assets.

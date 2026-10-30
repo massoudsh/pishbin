@@ -33,11 +33,12 @@ class Check(Base):
     customer_id = Column(Integer, ForeignKey("customers.id"), nullable=True, index=True)
     direction = Column(Enum(CheckDirection), nullable=False)
     counterparty_name = Column(String(200), nullable=False)  # issuer if received, payee if issued
-    amount = Column(Numeric(14, 0), nullable=False)  # Rials, no decimals
+    amount = Column(Numeric(14, 0), nullable=False)
     bank_name = Column(String(100), nullable=True)
     check_number = Column(String(50), nullable=True)
     sayad_id = Column(String(16), nullable=True, index=True)  # شماره صیادی (16 digits)
     due_date = Column(Date, nullable=False, index=True)
+    settlement_transaction_id = Column(Integer, ForeignKey("transactions.id", ondelete="RESTRICT"), nullable=True, unique=True)
     status = Column(Enum(CheckStatus), nullable=False, default=CheckStatus.PENDING)
     description = Column(Text, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())

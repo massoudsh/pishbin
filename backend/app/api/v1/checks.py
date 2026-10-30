@@ -10,7 +10,9 @@ from app.db.session import get_db
 from app.dependencies import get_current_user
 from app.models.user import User
 from app.models.check import CheckStatus
-from app.schemas.check import CheckCreate, CheckUpdate, CheckOut
+from app.schemas.check import CheckCreate, CheckUpdate, CheckOut, CheckSettlement
+from app.models.check import Check
+from app.services.settlement_service import SettlementService
 from app.services.check_service import CheckService
 from app.services.forecast_service import ForecastService
 
@@ -80,9 +82,30 @@ async def update_check(
     existing = service.get_check(check_id, current_user.id)
     if not existing:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Check not found")
-    check = service.update_check(check_id, check_data, current_user.id)
+    try:
+        check = service.update_check(check_id, check_data, current_user.id)
+    except ValueError as exc:
+        db.rollback()
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
     if not check:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Account not found")
+    return check
+
+
+@router.post("/{check_id}/settle", response_model=CheckOut)
+async def settle_check(
+    check_id: int,
+    data: CheckSettlement,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    try:
+        check = SettlementService(db).settle(Check, check_id, current_user.id, data.settlement_date, transaction_id=data.transaction_id)
+    except ValueError as exc:
+        db.rollback()
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    if not check:
+        raise HTTPException(status_code=404, detail="Check not found")
     return check
 
 
@@ -92,7 +115,7 @@ async def delete_check(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """Delete a cheque. Blocked for cleared/bounced cheques — void it instead."""
+    """Delete a cheque unless it has cleared/bounced history."""
     service = CheckService(db)
     check = service.get_check(check_id, current_user.id)
     if not check:

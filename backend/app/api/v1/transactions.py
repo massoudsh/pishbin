@@ -153,7 +153,11 @@ async def update_transaction(
 ):
     """Update an existing transaction."""
     service = TransactionsService(db)
-    transaction = service.update_transaction(transaction_id, transaction_data, current_user.id)
+    try:
+        transaction = service.update_transaction(transaction_id, transaction_data, current_user.id)
+    except ValueError as exc:
+        db.rollback()
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
     if not transaction:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -170,7 +174,11 @@ async def delete_transaction(
 ):
     """Delete a transaction."""
     service = TransactionsService(db)
-    success = service.delete_transaction(transaction_id, current_user.id)
+    try:
+        success = service.delete_transaction(transaction_id, current_user.id)
+    except ValueError as exc:
+        db.rollback()
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
     if not success:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

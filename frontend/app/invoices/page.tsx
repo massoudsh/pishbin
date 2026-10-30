@@ -6,7 +6,8 @@ import Navbar from '@/components/layout/Navbar'
 import { apiClient, getApiErrorMessage } from '@/lib/api'
 import { formatCurrency } from '@/lib/utils'
 import { fa } from '@/lib/fa'
-import { MOCK_CUSTOMERS, MOCK_INVOICES } from '@/lib/mock-data'
+import SettlementForm from '@/components/forms/SettlementForm'
+import { type Account } from '@/lib/schemas/account'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -18,6 +19,7 @@ interface InvoiceRow {
   issue_date: string
   due_date: string
   paid_date: string | null
+  settlement_transaction_id: number | null
   status: 'issued' | 'paid' | 'overdue' | 'cancelled'
   description: string | null
 }
@@ -45,7 +47,8 @@ export default function InvoicesPage() {
   const [list, setList] = useState<InvoiceRow[]>([])
   const [customers, setCustomers] = useState<CustomerOption[]>([])
   const [loading, setLoading] = useState(true)
-  const [isMock, setIsMock] = useState(false)
+  const [accounts, setAccounts] = useState<Account[]>([])
+  const [settlingId, setSettlingId] = useState<number | null>(null)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [form, setForm] = useState({
@@ -62,15 +65,17 @@ export default function InvoicesPage() {
 
   async function load() {
     setLoading(true)
-    setIsMock(false)
+    setError('')
     try {
-      const [invoices, custs] = await Promise.all([apiClient.getInvoices(), apiClient.getCustomers()])
+      const [invoices, custs, accs] = await Promise.all([apiClient.getInvoices(), apiClient.getCustomers(), apiClient.getAccounts()])
+      setAccounts(accs.filter(account => account.is_active !== false && account.currency === 'IRT' && ['checking', 'savings', 'other'].includes(account.account_type)))
       setList(Array.isArray(invoices) ? (invoices as InvoiceRow[]) : [])
       setCustomers(Array.isArray(custs) ? custs.map((c) => ({ id: c.id, name: c.name })) : [])
-    } catch {
-      setList(MOCK_INVOICES as InvoiceRow[])
-      setCustomers(MOCK_CUSTOMERS.map((c) => ({ id: c.id, name: c.name })))
-      setIsMock(true)
+    } catch (err) {
+      setList([])
+      setCustomers([])
+      setAccounts([])
+      setError(getApiErrorMessage(err))
     } finally {
       setLoading(false)
     }
@@ -103,7 +108,7 @@ export default function InvoicesPage() {
     }
   }
 
-  async function handleStatusChange(id: number, status: 'paid' | 'cancelled') {
+  async function handleStatusChange(id: number, status: 'cancelled') {
     try {
       await apiClient.updateInvoice(id, { status })
       load()
@@ -130,9 +135,9 @@ export default function InvoicesPage() {
       <main className="max-w-4xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
         <div className="mb-8 flex flex-wrap items-center gap-2">
           <h1 className="text-2xl font-bold text-foreground">{fa.invoices.title}</h1>
-          {isMock && <Badge variant="warning">نمایش نمونه</Badge>}
         </div>
 
+        {error && <div role="alert" className="mb-4 text-destructive">{error} <Button variant="outline" onClick={load} disabled={loading}>دریافت دوباره</Button></div>}
         <Card className="mb-8">
           <CardHeader>
             <CardTitle>{fa.invoices.addInvoice}</CardTitle>
@@ -147,11 +152,6 @@ export default function InvoicesPage() {
             </p>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4">
-              {error && (
-                <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 px-4 py-3 rounded-md text-sm">
-                  {error}
-                </div>
-              )}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{fa.invoices.customer}</label>
@@ -244,7 +244,7 @@ export default function InvoicesPage() {
                   <div className="flex items-center gap-3">
                     {(inv.status === 'issued' || inv.status === 'overdue') && (
                       <>
-                        <Button size="sm" variant="ghost" onClick={() => handleStatusChange(inv.id, 'paid')} className="text-emerald-600 dark:text-emerald-400">
+                        <Button size="sm" variant="ghost" onClick={() => setSettlingId(inv.id)} className="text-emerald-600 dark:text-emerald-400">
                           {fa.invoices.markPaid}
                         </Button>
                         <Button size="sm" variant="ghost" onClick={() => handleStatusChange(inv.id, 'cancelled')} className="text-muted-foreground">
@@ -256,6 +256,13 @@ export default function InvoicesPage() {
                       </>
                     )}
                   </div>
+                  {inv.settlement_transaction_id && <Link href="/transactions" className="text-sm text-accent">تراکنش تسویه #{inv.settlement_transaction_id}</Link>}
+                  {inv.status === 'paid' && !inv.settlement_transaction_id && <Badge variant="warning">تسویه قدیمی بدون پیوند دفتر؛ نیازمند تطبیق</Badge>}
+                  {settlingId === inv.id && <SettlementForm key={inv.id} amount={inv.amount} direction="income" accounts={accounts} onCancel={() => setSettlingId(null)} onSubmit={async data => {
+                    await apiClient.settleInvoice(inv.id, { ...data, account_id: data.account_id! })
+                    setSettlingId(null)
+                    await load()
+                  }} />}
                 </li>
               ))}
             </ul>

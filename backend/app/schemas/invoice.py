@@ -1,16 +1,18 @@
 """Invoice schemas for request/response validation."""
 from datetime import date, datetime
-from decimal import Decimal
 from typing import Optional
 
-from pydantic import BaseModel, Field, field_serializer
+from pydantic import BaseModel, Field, condecimal, field_serializer
 
 from app.models.invoice import InvoiceStatus
 
 
+DocumentAmount = condecimal(gt=0, max_digits=14, decimal_places=0)
+
+
 class InvoiceBase(BaseModel):
     customer_id: int
-    amount: Decimal = Field(..., gt=0)
+    amount: DocumentAmount
     issue_date: date
     due_date: date
     description: Optional[str] = None
@@ -22,7 +24,7 @@ class InvoiceCreate(InvoiceBase):
 
 class InvoiceUpdate(BaseModel):
     customer_id: Optional[int] = None
-    amount: Optional[Decimal] = Field(None, gt=0)
+    amount: Optional[DocumentAmount] = None
     issue_date: Optional[date] = None
     due_date: Optional[date] = None
     paid_date: Optional[date] = None
@@ -30,7 +32,14 @@ class InvoiceUpdate(BaseModel):
     description: Optional[str] = None
 
 
+class InvoiceSettlement(BaseModel):
+    account_id: int = Field(gt=0)
+    settlement_date: date
+    transaction_id: Optional[int] = Field(default=None, gt=0)
+
+
 class InvoiceOut(InvoiceBase):
+    settlement_transaction_id: Optional[int] = None
     id: int
     user_id: int
     paid_date: Optional[date] = None

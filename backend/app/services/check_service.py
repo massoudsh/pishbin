@@ -57,11 +57,15 @@ class CheckService:
         user_id: int,
     ) -> Optional[Check]:
         """Update an existing cheque."""
-        check = self.get_check(check_id, user_id)
+        check = self.db.query(Check).filter(Check.id == check_id, Check.user_id == user_id).populate_existing().with_for_update().first()
         if not check:
             return None
 
         update_data = check_data.model_dump(exclude_unset=True)
+        if check.settlement_transaction_id or check.status == CheckStatus.CLEARED:
+            raise ValueError("Settled checks cannot be edited")
+        if update_data.get("status") == CheckStatus.CLEARED:
+            raise ValueError("Use the settlement endpoint to clear a check in the ledger")
         if "account_id" in update_data:
             account = self.db.query(Account).filter(
                 Account.id == update_data["account_id"],
@@ -78,17 +82,13 @@ class CheckService:
         return check
 
     def delete_check(self, check_id: int, user_id: int) -> tuple[bool, Optional[str]]:
-        """
-        Delete a cheque. Returns (success, error_message).
-        Blocked once a cheque has been cleared or bounced, to preserve the audit trail;
-        void it instead via a status update.
-        """
-        check = self.get_check(check_id, user_id)
+        """Delete a cheque unless its cleared/bounced history must be preserved."""
+        check = self.db.query(Check).filter(Check.id == check_id, Check.user_id == user_id).populate_existing().with_for_update().first()
         if not check:
             return False, None
 
         if check.status in (CheckStatus.CLEARED, CheckStatus.BOUNCED):
-            return False, "Cannot delete a cleared or bounced cheque; set status to voided instead"
+            return False, "Cannot delete a cleared or bounced cheque; its history must be preserved"
 
         self.db.delete(check)
         self.db.commit()

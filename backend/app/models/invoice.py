@@ -25,10 +25,11 @@ class Invoice(Base):
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     customer_id = Column(Integer, ForeignKey("customers.id"), nullable=False, index=True)
-    amount = Column(Numeric(14, 0), nullable=False)  # Rials, no decimals
+    amount = Column(Numeric(14, 0), nullable=False)
     issue_date = Column(Date, nullable=False)
     due_date = Column(Date, nullable=False, index=True)
     paid_date = Column(Date, nullable=True)
+    settlement_transaction_id = Column(Integer, ForeignKey("transactions.id", ondelete="RESTRICT"), nullable=True, unique=True)
     status = Column(Enum(InvoiceStatus), nullable=False, default=InvoiceStatus.ISSUED)
     description = Column(Text, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())

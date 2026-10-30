@@ -1,11 +1,13 @@
 """Check (cheque) schemas for request/response validation."""
 from datetime import date, datetime
-from decimal import Decimal
 from typing import Optional
 
-from pydantic import BaseModel, Field, field_serializer
+from pydantic import BaseModel, Field, condecimal, field_serializer
 
 from app.models.check import CheckDirection, CheckStatus
+
+
+DocumentAmount = condecimal(gt=0, max_digits=14, decimal_places=0)
 
 
 class CheckBase(BaseModel):
@@ -13,7 +15,7 @@ class CheckBase(BaseModel):
     customer_id: Optional[int] = None
     direction: CheckDirection
     counterparty_name: str = Field(..., min_length=1, max_length=200)
-    amount: Decimal = Field(..., gt=0)
+    amount: DocumentAmount
     bank_name: Optional[str] = Field(None, max_length=100)
     check_number: Optional[str] = Field(None, max_length=50)
     sayad_id: Optional[str] = Field(None, min_length=16, max_length=16)
@@ -30,7 +32,7 @@ class CheckUpdate(BaseModel):
     customer_id: Optional[int] = None
     direction: Optional[CheckDirection] = None
     counterparty_name: Optional[str] = Field(None, min_length=1, max_length=200)
-    amount: Optional[Decimal] = Field(None, gt=0)
+    amount: Optional[DocumentAmount] = None
     bank_name: Optional[str] = Field(None, max_length=100)
     check_number: Optional[str] = Field(None, max_length=50)
     sayad_id: Optional[str] = Field(None, min_length=16, max_length=16)
@@ -39,7 +41,13 @@ class CheckUpdate(BaseModel):
     description: Optional[str] = None
 
 
+class CheckSettlement(BaseModel):
+    settlement_date: date
+    transaction_id: Optional[int] = Field(default=None, gt=0)
+
+
 class CheckOut(CheckBase):
+    settlement_transaction_id: Optional[int] = None
     id: int
     user_id: int
     status: CheckStatus

@@ -34,6 +34,7 @@ def _create_account(client: TestClient, headers: dict) -> int:
         "business_id": business_id,
         "name": "حساب چک",
         "account_type": "checking",
+        "currency": "IRT",
     }, headers=headers)
     assert resp.status_code == 201, resp.text
     return resp.json()["id"]
@@ -101,13 +102,13 @@ def test_update_status_to_cleared(client: TestClient):
     }, headers=headers)
     check_id = resp.json()["id"]
 
-    resp = client.put(f"{API}/checks/{check_id}", json={"status": "cleared"}, headers=headers)
+    resp = client.post(f"{API}/checks/{check_id}/settle", json={"settlement_date": date.today().isoformat()}, headers=headers)
     assert resp.status_code == 200
     assert resp.json()["status"] == "cleared"
 
 
 def test_cannot_delete_cleared_check(client: TestClient):
-    """Deleting a cleared cheque is blocked; it must be voided instead."""
+    """Deleting a settled cheque is blocked to preserve its ledger link."""
     token = _register_and_login(client, "checkdel", "checkdel@example.com")
     headers = _auth_headers(token)
     account_id = _create_account(client, headers)
@@ -120,7 +121,7 @@ def test_cannot_delete_cleared_check(client: TestClient):
         "due_date": date.today().isoformat(),
     }, headers=headers)
     check_id = resp.json()["id"]
-    client.put(f"{API}/checks/{check_id}", json={"status": "cleared"}, headers=headers)
+    client.post(f"{API}/checks/{check_id}/settle", json={"settlement_date": date.today().isoformat()}, headers=headers)
 
     resp = client.delete(f"{API}/checks/{check_id}", headers=headers)
     assert resp.status_code == 400

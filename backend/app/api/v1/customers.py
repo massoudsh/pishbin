@@ -87,5 +87,10 @@ async def delete_customer(
 ):
     """Delete a customer (and its invoices)."""
     service = CustomerService(db)
-    if not service.delete_customer(customer_id, current_user.id):
+    try:
+        deleted = service.delete_customer(customer_id, current_user.id)
+    except ValueError as exc:
+        db.rollback()
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    if not deleted:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Customer not found")

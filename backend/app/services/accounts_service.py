@@ -3,6 +3,10 @@ Accounts service for business logic.
 """
 from typing import List, Optional
 from sqlalchemy.orm import Session
+from sqlalchemy import or_
+from app.models.transaction import Transaction
+from app.models.invoice import Invoice
+from app.models.check import Check
 from app.models.account import Account
 from app.schemas.account import AccountCreate, AccountUpdate
 
@@ -44,6 +48,13 @@ class AccountsService:
         self.db.refresh(db_account)
         return db_account
     
+    def _has_settlements(self, account_id: int) -> bool:
+        return self.db.query(Transaction.id).filter(
+            Transaction.account_id == account_id,
+            or_(Transaction.id.in_(self.db.query(Invoice.settlement_transaction_id)),
+                Transaction.id.in_(self.db.query(Check.settlement_transaction_id))),
+        ).first() is not None
+
     def update_account(
         self,
         account_id: int,
@@ -51,11 +62,13 @@ class AccountsService:
         user_id: int
     ) -> Optional[Account]:
         """Update an existing account."""
-        account = self.get_account(account_id, user_id)
+        account = self.db.query(Account).filter(Account.id == account_id, Account.user_id == user_id).populate_existing().with_for_update().first()
         if not account:
             return None
         
         update_data = account_data.model_dump(exclude_unset=True)
+        if self._has_settlements(account_id) and any(field in update_data and update_data[field] != getattr(account, field) for field in ("balance", "currency", "account_type")):
+            raise ValueError("Accounts with settlements cannot have their balance, currency or type overwritten")
         for field, value in update_data.items():
             setattr(account, field, value)
         
@@ -65,10 +78,12 @@ class AccountsService:
     
     def delete_account(self, account_id: int, user_id: int) -> bool:
         """Delete an account."""
-        account = self.get_account(account_id, user_id)
+        account = self.db.query(Account).filter(Account.id == account_id, Account.user_id == user_id).populate_existing().with_for_update().first()
         if not account:
             return False
         
+        if self._has_settlements(account_id):
+            raise ValueError("Accounts with settlement history cannot be deleted")
         self.db.delete(account)
         self.db.commit()
         return True

@@ -33,6 +33,14 @@ def _create_customer(client: TestClient, headers: dict) -> int:
     return resp.json()["id"]
 
 
+def _settle_invoice(client: TestClient, headers: dict, invoice_id: int):
+    business_id = client.get(f"{API}/businesses/", headers=headers).json()[0]["id"]
+    account_id = client.post(f"{API}/accounts/", json={
+        "business_id": business_id, "name": "Settlement", "account_type": "checking", "currency": "IRT",
+    }, headers=headers).json()["id"]
+    return client.post(f"{API}/invoices/{invoice_id}/settle", json={"account_id": account_id, "settlement_date": date.today().isoformat()}, headers=headers)
+
+
 def test_create_and_list_invoice(client: TestClient):
     token = _register_and_login(client, "invuser", "inv@example.com")
     headers = _auth_headers(token)
@@ -103,7 +111,7 @@ def test_mark_paid_sets_paid_date(client: TestClient):
     }, headers=headers)
     invoice_id = resp.json()["id"]
 
-    resp = client.put(f"{API}/invoices/{invoice_id}", json={"status": "paid"}, headers=headers)
+    resp = _settle_invoice(client, headers, invoice_id)
     assert resp.status_code == 200
     body = resp.json()
     assert body["status"] == "paid"
@@ -122,7 +130,7 @@ def test_cannot_delete_paid_invoice(client: TestClient):
         "due_date": date.today().isoformat(),
     }, headers=headers)
     invoice_id = resp.json()["id"]
-    client.put(f"{API}/invoices/{invoice_id}", json={"status": "paid"}, headers=headers)
+    _settle_invoice(client, headers, invoice_id)
 
     resp = client.delete(f"{API}/invoices/{invoice_id}", headers=headers)
     assert resp.status_code == 400

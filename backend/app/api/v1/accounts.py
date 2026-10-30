@@ -71,7 +71,11 @@ async def update_account(
 ):
     """Update an existing account."""
     service = AccountsService(db)
-    account = service.update_account(account_id, account_data, current_user.id)
+    try:
+        account = service.update_account(account_id, account_data, current_user.id)
+    except ValueError as exc:
+        db.rollback()
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
     if not account:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -88,7 +92,11 @@ async def delete_account(
 ):
     """Delete an account."""
     service = AccountsService(db)
-    success = service.delete_account(account_id, current_user.id)
+    try:
+        success = service.delete_account(account_id, current_user.id)
+    except ValueError as exc:
+        db.rollback()
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
     if not success:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
