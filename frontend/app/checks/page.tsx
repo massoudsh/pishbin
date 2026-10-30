@@ -70,7 +70,7 @@ export default function ChecksPage() {
     try {
       const [checks, acc, fc] = await Promise.all([
         apiClient.getChecks(),
-        apiClient.getAccounts(),
+        apiClient.getAllAccounts(),
         apiClient.getCheckCashFlowForecast(30),
       ])
       setList(Array.isArray(checks) ? (checks as CheckRow[]) : [])

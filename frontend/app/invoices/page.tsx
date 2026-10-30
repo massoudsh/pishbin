@@ -67,7 +67,7 @@ export default function InvoicesPage() {
     setLoading(true)
     setError('')
     try {
-      const [invoices, custs, accs] = await Promise.all([apiClient.getInvoices(), apiClient.getCustomers(), apiClient.getAccounts()])
+      const [invoices, custs, accs] = await Promise.all([apiClient.getInvoices(), apiClient.getCustomers(), apiClient.getAllAccounts()])
       setAccounts(accs.filter(account => account.is_active !== false && account.currency === 'IRT' && ['checking', 'savings', 'other'].includes(account.account_type)))
       setList(Array.isArray(invoices) ? (invoices as InvoiceRow[]) : [])
       setCustomers(Array.isArray(custs) ? custs.map((c) => ({ id: c.id, name: c.name })) : [])
