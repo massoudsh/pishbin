@@ -102,6 +102,7 @@ Multi-business/multi-branch workspaces. Every user gets one default business aut
   "notes": "Weekly groceries"
 }
 ```
+  Amount must be strictly positive with at most 10 digits and 2 decimal places on create/update; zero/negative values return `422` without changing the balance. Update fields `account_id`, `amount`, `transaction_type`, and `date` may be omitted but cannot be explicitly null (`422`); category/description/notes can still be cleared. Read schemas remain unchanged for historical rows.
   Returns `409` with `{ "detail": { "code": "possible_duplicate", "existing_id", "existing_date" } }` if a likely duplicate is found; pass `?force=true` to create anyway.
 - **PUT** `/transactions/{id}` — `409` if linked to an invoice/check settlement.
 - **DELETE** `/transactions/{id}` — `409` if linked to an invoice/check settlement.
