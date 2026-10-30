@@ -127,6 +127,29 @@ test('invalid API amounts and unknown statuses are rejected', () => {
   assert.equal(DecisionDataSchema.safeParse({ ...fixture(), invoices: [{ ...fixture().invoices[0], status: 'unknown' }] }).success, false)
 })
 
+for (const value of [null, undefined, '', ' ', true, false, [], {}, '0x10', 'Infinity', Infinity, NaN]) {
+  test(`invalid monetary value ${JSON.stringify(value)} is not silently converted to money`, () => {
+    const data = fixture()
+    assert.equal(DecisionDataSchema.safeParse({ ...data, accounts: [{ ...data.accounts[0], balance: value }] }).success, false)
+    assert.equal(DecisionDataSchema.safeParse({ ...data, checks: [{ ...data.checks[0], amount: value }] }).success, false)
+    assert.equal(DecisionDataSchema.safeParse({ ...data, invoices: [{ ...data.invoices[0], amount: value }] }).success, false)
+  })
+}
+
+test('valid decimal amounts normalize while negative balances remain valid', () => {
+  const data = fixture()
+  const parsed = DecisionDataSchema.parse({
+    ...data,
+    accounts: [{ ...data.accounts[0], balance: '-123.50' }],
+    checks: [{ ...data.checks[0], amount: '300' }],
+    invoices: [{ ...data.invoices[0], amount: '200.00' }],
+  })
+  assert.equal(parsed.accounts[0].balance, -123.5)
+  assert.equal(parsed.checks[0].amount, 300)
+  assert.equal(parsed.invoices[0].amount, 200)
+  assert.equal(DecisionDataSchema.safeParse({ ...data, checks: [{ ...data.checks[0], amount: '-1' }] }).success, false)
+})
+
 test('impossible calendar dates are rejected before calculation', () => {
   const data = fixture()
   data.invoices[0].due_date = '2026-02-30'

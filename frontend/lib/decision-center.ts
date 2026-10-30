@@ -1,6 +1,7 @@
 import { z } from 'zod'
 
-const amount = z.coerce.number().finite().nonnegative()
+const monetaryValue = z.union([z.number(), z.string().regex(/^-?\d+(\.\d+)?$/).transform(Number)]).pipe(z.number().finite())
+const amount = monetaryValue.pipe(z.number().nonnegative())
 const dateKey = z.string().regex(/^\d{4}-\d{2}-\d{2}$/).refine(value => {
   const date = new Date(`${value}T12:00:00Z`)
   return Number.isFinite(date.getTime()) && date.toISOString().slice(0, 10) === value
@@ -8,7 +9,7 @@ const dateKey = z.string().regex(/^\d{4}-\d{2}-\d{2}$/).refine(value => {
 export const DecisionDataSchema = z.object({
   accounts: z.array(z.object({
     id: z.number(), name: z.string(), account_type: z.string(),
-    balance: z.coerce.number().finite(), currency: z.string(), is_active: z.boolean().optional(),
+    balance: monetaryValue, currency: z.string(), is_active: z.boolean().optional(),
   })),
   checks: z.array(z.object({
     id: z.number(), account_id: z.number(), amount, due_date: dateKey,

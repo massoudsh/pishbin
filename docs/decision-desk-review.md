@@ -57,10 +57,10 @@ The new desk consumes existing authenticated GET endpoints under `/api/v1`: `/ac
 
 - Uses active checking/savings/other cash accounts; investment, loan and credit-card balances are not spendable cash.
 - Only IRT accounts are supported; missing or unsupported pending-check accounts block cash calculations. Invoices currently have no currency, so تومان is an explicit assumption.
-- The account endpoint defaults to 100 records. This version fails closed at 100 or more returned accounts rather than pretending the list is complete. Paginated, stable snapshot loading remains follow-up work.
+- The account endpoint defaults to 100 records and orders by ID. The desk now traverses all pages with an `after_id` cursor, including an extra empty request at exact page multiples. Failed/invalid pages or repeated/out-of-order IDs reject the entire load; deletions in previously fetched pages do not shift later records. This is not an atomic snapshot across accounts or the four lists.
 - Baseline subtracts pending issued checks, including overdue obligations once on day zero. It does not automatically include invoice receipts, incoming checks, payroll, recurring expenses or unrecorded liabilities. It is a known-commitment plan, not a full cash forecast.
 - Receipt percentage and delay are assumptions chosen by the user, not predicted probabilities. Invoice/check overlap may double-count receipts; keep receipt percentage at zero until overlap is resolved.
-- No mock data replaces failed requests. Invalid amount/status/calendar data is rejected.
+- No mock data replaces failed requests. Invalid amount/status/calendar data is rejected. Monetary values accept finite numbers or decimal strings only; null, blanks, booleans, arrays and non-decimal strings cannot silently become zero. Negative balances remain valid, while document amounts cannot be negative.
 - All four lists are user-scoped, not business-filtered or transactionally snapshotted. Concurrent financial changes can require refresh.
 - Arithmetic uses JavaScript numbers; do not treat this as a ledger-grade monetary engine.
 - Existing detail anchors are provided; asynchronous anchor scrolling and visual behavior have not been browser-tested.
@@ -75,6 +75,6 @@ A subscription for a daily decision workspace is a hypothesis worth testing afte
 
 ## Validation performed
 
-Thirty-eight frontend checks pass across calculations, account schemas, in-memory Axios authentication/settlement scenarios and hook-stubbed route guards; whole-frontend TypeScript, focused ESLint and whitespace checks pass. Fifty-one backend tests pass against isolated SQLite, covering settlement replay, existing-entry linking, ownership, immutability, rollback and migration upgrade/downgrade; PostgreSQL migration SQL is checked offline. No production build, browser/visual test, deployment, live payment test or live PostgreSQL concurrency test was performed. The settlement migration is included, not applied to production.
+Sixty-one frontend checks pass across calculations, strict monetary validation, complete account cursor loading, account schemas, in-memory Axios authentication/settlement scenarios and hook-stubbed route guards; whole-frontend TypeScript, focused ESLint and whitespace checks pass. Fifty-seven backend tests pass against isolated SQLite, covering account pagination/ownership/deleted boundaries/invalid parameters, settlement replay, existing-entry linking, immutability, rollback and migration upgrade/downgrade; PostgreSQL migration SQL is checked offline. No production build, browser/visual test, deployment, live payment test or live PostgreSQL concurrency test was performed. The settlement migration is included, not applied to production.
 
 Image briefs are in `docs/decision-desk-image-prompts.md`; the interface works without generated assets.
