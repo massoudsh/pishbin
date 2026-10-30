@@ -75,7 +75,7 @@ export function cashAccounts(data: DecisionData) {
 }
 
 export function currencyBlocked(data: DecisionData) {
-  return cashAccounts(data).some(a => a.currency !== 'IRT') || data.checks.some(c => c.status === 'pending' && !cashAccounts(data).some(a => a.id === c.account_id && a.currency === 'IRT'))
+  return cashAccounts(data).some(a => a.currency !== 'IRT') || data.checks.some(c => (c.status === 'pending' || (c.status === 'bounced' && c.direction === 'issued')) && !cashAccounts(data).some(a => a.id === c.account_id && a.currency === 'IRT'))
 }
 
 export type Scenario = { purchase: number; purchaseDay: number; dailyExpense: number; receiptPercent: number; receiptDelay: number }
@@ -86,7 +86,7 @@ export function cashTimeline(data: DecisionData, today: string, days: number, sc
   let balance = cashAccounts(data).reduce((sum, a) => sum + a.balance, 0)
   return Array.from({ length: days }, (_, index) => {
     const date = shiftDate(today, index)
-    const issued = data.checks.filter(c => c.status === 'pending' && c.direction === 'issued' && (c.due_date === date || (index === 0 && c.due_date < today)))
+    const issued = data.checks.filter(c => c.direction === 'issued' && (c.status === 'bounced' ? index === 0 : c.status === 'pending' && (c.due_date === date || (index === 0 && c.due_date < today))))
     const received = data.checks.filter(c => c.status === 'pending' && c.direction === 'received' && c.due_date >= today && shiftDate(c.due_date, scenario.receiptDelay) === date)
     const invoices = openInvoices(data.invoices).filter(i => i.due_date >= today && shiftDate(i.due_date, scenario.receiptDelay) === date)
     const inflow = (received.reduce((sum, c) => sum + c.amount, 0) + invoices.reduce((sum, i) => sum + i.amount, 0)) * scenario.receiptPercent / 100
@@ -101,7 +101,7 @@ export function readiness(data: DecisionData, today: string) {
   return [
     { id: 'accounts', title: 'مانده حساب‌های نقدی', detail: 'حساب جاری، پس‌انداز و سایر؛ مانده را با بانک کنترل کنید.', ok: accounts.length > 0, href: '/accounts' },
     { id: 'currency', title: 'واحد پول قابل مقایسه', detail: 'محاسبه این نسخه فقط با حساب و چک تومانی انجام می‌شود.', ok: !currencyBlocked(data), href: '/accounts' },
-    { id: 'checks', title: 'چک‌های صادره سررسیدگذشته', detail: 'وضعیت چک‌های پرداخت‌نشده قدیمی را مشخص کنید.', ok: !data.checks.some(c => c.status === 'pending' && c.direction === 'issued' && c.due_date < today), href: '/checks' },
+    { id: 'checks', title: 'چک‌های صادره معوق یا برگشتی', detail: 'چک برگشتی تا ثبت پرداخت همچنان تعهد نقدی است؛ وضعیت چک‌های پرداخت‌نشده را مشخص کنید.', ok: !data.checks.some(c => c.direction === 'issued' && (c.status === 'bounced' || (c.status === 'pending' && c.due_date < today))), href: '/checks' },
     { id: 'contacts', title: 'راه تماس مشتریان بدهکار', detail: 'برای پیگیری، شماره تماس مشتری دارای فاکتور باز لازم است.', ok: openInvoices(data.invoices).every(i => data.customers.some(c => c.id === i.customer_id && Boolean(c.phone?.trim()))), href: '/customers' },
     { id: 'receivables', title: 'مطالبات سررسیدگذشته', detail: 'مطالبات معوق در موجودی آینده قطعی محسوب نمی‌شوند.', ok: !openInvoices(data.invoices).some(i => i.due_date < today), href: '/invoices' },
   ]

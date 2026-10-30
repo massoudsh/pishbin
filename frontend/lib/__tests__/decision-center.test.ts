@@ -25,6 +25,35 @@ test('overdue outgoing check is reserved once on day zero', () => {
   assert.deepEqual(cashTimeline(data, today, 2).map(d => d.outflow), [300, 0])
 })
 
+test('bounced issued cheques remain reserved once until actually settled', () => {
+  for (const due_date of ['2026-10-01', today, '2026-11-01']) {
+    const data = fixture()
+    data.checks[0] = { ...data.checks[0], status: 'bounced', due_date }
+    const plan = cashTimeline(data, today, 3)
+    assert.deepEqual(plan.map(day => day.outflow), [300, 0, 0])
+    assert.deepEqual(plan[0].checkIds, [1])
+    assert.equal(readiness(data, today).find(row => row.id === 'checks')?.ok, false)
+    data.checks[0].status = 'cleared'
+    data.accounts[0].balance = 700
+    assert.deepEqual(cashTimeline(data, today, 3).map(day => day.balance), [700, 700, 700])
+  }
+})
+
+test('unsupported accounts block bounced obligations rather than hiding them', () => {
+  const data = fixture()
+  data.checks[0].status = 'bounced'
+  data.checks[0].account_id = 99
+  assert.equal(currencyBlocked(data), true)
+  assert.deepEqual(cashTimeline(data, today, 7), [])
+})
+
+test('bounced received cheques are not hypothetical receipts', () => {
+  const data = fixture()
+  data.invoices = []
+  data.checks[0] = { ...data.checks[0], status: 'bounced', direction: 'received' }
+  assert.deepEqual(cashTimeline(data, today, 3, { ...emptyScenario, receiptPercent: 100 }).map(day => day.inflow), [0, 0, 0])
+})
+
 test('cleared and voided checks do not become new obligations', () => {
   const data = fixture()
   data.checks[0].status = 'cleared'
