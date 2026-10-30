@@ -51,7 +51,7 @@ test('bounced received cheques are not hypothetical receipts', () => {
   const data = fixture()
   data.invoices = []
   data.checks[0] = { ...data.checks[0], status: 'bounced', direction: 'received' }
-  assert.deepEqual(cashTimeline(data, today, 3, { ...emptyScenario, receiptPercent: 100 }).map(day => day.inflow), [0, 0, 0])
+  assert.deepEqual(cashTimeline(data, today, 3, { ...emptyScenario, receiptSource: 'checks', receiptPercent: 100 }).map(day => day.inflow), [0, 0, 0])
 })
 
 test('cleared and voided checks do not become new obligations', () => {
@@ -70,6 +70,43 @@ test('purchase happens once and daily costs recur', () => {
 test('receipt delay and percentage are user assumptions', () => {
   const plan = cashTimeline(fixture(), today, 3, { ...emptyScenario, receiptPercent: 50, receiptDelay: 1 })
   assert.deepEqual(plan.map(d => d.inflow), [0, 100, 0])
+})
+
+test('receipt sources never add an invoice and a received cheque together', () => {
+  const data = fixture()
+  data.checks[0] = { ...data.checks[0], direction: 'received', amount: 200 }
+  for (const receiptSource of ['invoices', 'checks'] as const) {
+    const plan = cashTimeline(data, today, 2, { ...emptyScenario, receiptSource, receiptPercent: 100 })
+    assert.deepEqual(plan.map(day => day.inflow), [200, 0])
+    assert.equal(plan[1].balance, 1200)
+  }
+  assert.equal(cashTimeline(data, today, 1)[0].inflow, 0)
+})
+
+test('switching receipt source uses only that source with the chosen delay and percentage', () => {
+  const data = fixture()
+  data.checks[0] = { ...data.checks[0], direction: 'received', amount: 600 }
+  const assumption = { ...emptyScenario, receiptPercent: 50, receiptDelay: 1 }
+  assert.deepEqual(cashTimeline(data, today, 3, assumption).map(day => day.inflow), [0, 100, 0])
+  assert.deepEqual(cashTimeline(data, today, 3, { ...assumption, receiptSource: 'checks' }).map(day => day.inflow), [0, 300, 0])
+})
+
+test('an empty selected receipt source does not fall back to the other source', () => {
+  const data = fixture()
+  data.checks[0].direction = 'received'
+  data.invoices = []
+  assert.equal(cashTimeline(data, today, 1, { ...emptyScenario, receiptPercent: 100 })[0].inflow, 0)
+  data.invoices = fixture().invoices
+  data.checks = []
+  assert.equal(cashTimeline(data, today, 1, { ...emptyScenario, receiptSource: 'checks', receiptPercent: 100 })[0].inflow, 0)
+})
+
+test('cheque receipt source excludes late, cleared and voided cheques', () => {
+  for (const status of ['pending', 'cleared', 'voided'] as const) {
+    const data = fixture()
+    data.checks[0] = { ...data.checks[0], direction: 'received', status, due_date: status === 'pending' ? '2026-10-19' : today }
+    assert.equal(cashTimeline(data, today, 1, { ...emptyScenario, receiptSource: 'checks', receiptPercent: 100 })[0].inflow, 0)
+  }
 })
 
 test('delayed receipt beyond horizon is excluded', () => {

@@ -78,8 +78,8 @@ export function currencyBlocked(data: DecisionData) {
   return cashAccounts(data).some(a => a.currency !== 'IRT') || data.checks.some(c => (c.status === 'pending' || (c.status === 'bounced' && c.direction === 'issued')) && !cashAccounts(data).some(a => a.id === c.account_id && a.currency === 'IRT'))
 }
 
-export type Scenario = { purchase: number; purchaseDay: number; dailyExpense: number; receiptPercent: number; receiptDelay: number }
-export const emptyScenario: Scenario = { purchase: 0, purchaseDay: 0, dailyExpense: 0, receiptPercent: 0, receiptDelay: 0 }
+export type Scenario = { purchase: number; purchaseDay: number; dailyExpense: number; receiptPercent: number; receiptDelay: number; receiptSource: 'invoices' | 'checks' }
+export const emptyScenario: Scenario = { purchase: 0, purchaseDay: 0, dailyExpense: 0, receiptPercent: 0, receiptDelay: 0, receiptSource: 'invoices' }
 
 export function cashTimeline(data: DecisionData, today: string, days: number, scenario: Scenario = emptyScenario) {
   if (currencyBlocked(data)) return []
@@ -89,7 +89,8 @@ export function cashTimeline(data: DecisionData, today: string, days: number, sc
     const issued = data.checks.filter(c => c.direction === 'issued' && (c.status === 'bounced' ? index === 0 : c.status === 'pending' && (c.due_date === date || (index === 0 && c.due_date < today))))
     const received = data.checks.filter(c => c.status === 'pending' && c.direction === 'received' && c.due_date >= today && shiftDate(c.due_date, scenario.receiptDelay) === date)
     const invoices = openInvoices(data.invoices).filter(i => i.due_date >= today && shiftDate(i.due_date, scenario.receiptDelay) === date)
-    const inflow = (received.reduce((sum, c) => sum + c.amount, 0) + invoices.reduce((sum, i) => sum + i.amount, 0)) * scenario.receiptPercent / 100
+    const receiptAmount = scenario.receiptSource === 'checks' ? received.reduce((sum, c) => sum + c.amount, 0) : invoices.reduce((sum, i) => sum + i.amount, 0)
+    const inflow = receiptAmount * scenario.receiptPercent / 100
     const outflow = issued.reduce((sum, c) => sum + c.amount, 0) + scenario.dailyExpense + (index === scenario.purchaseDay ? scenario.purchase : 0)
     balance += inflow - outflow
     return { date, balance, inflow, outflow, checkIds: issued.map(c => c.id) }

@@ -71,7 +71,7 @@ export default function DecisionsPage() {
   const overdueTotal = queue.filter(i => i.daysLate > 0).reduce((sum, i) => sum + i.amount, 0)
   const selected = sections.find(s => s.id === active)!
 
-  function updateScenario(key: keyof Scenario, value: string, max: number) {
+  function updateScenario(key: Exclude<keyof Scenario, 'receiptSource'>, value: string, max: number) {
     const number = Number(value)
     if (Number.isFinite(number)) setScenario(previous => ({ ...previous, [key]: Math.min(max, Math.max(0, Math.floor(number))) }))
   }
@@ -176,8 +176,14 @@ export default function DecisionsPage() {
                       <label htmlFor="daily-expense">هزینه روزمره تخمینی در هر روز (تومان)<input id="daily-expense" className={fieldClass} type="number" min="0" max="1000000000000" step="1" value={scenario.dailyExpense} onChange={e => updateScenario('dailyExpense', e.target.value, 1e12)} /></label>
                       <label htmlFor="receipt-delay">تأخیر فرضی وصول (روز)<input id="receipt-delay" className={fieldClass} type="number" min="0" max="90" value={scenario.receiptDelay} onChange={e => updateScenario('receiptDelay', e.target.value, 90)} /></label>
                     </div>
-                    <label htmlFor="receipt-percent" className="block">سهم فرضی وصول مطالبات آینده: {formatNumber(scenario.receiptPercent)}٪<input id="receipt-percent" className="mt-3 w-full accent-emerald-600" type="range" min="0" max="100" step="10" value={scenario.receiptPercent} onChange={e => updateScenario('receiptPercent', e.target.value, 100)} /></label>
-                    <p className="text-sm leading-7 text-muted-foreground">درصد وصول، فرض شماست نه احتمال آماری. فاکتور و چک دریافتی مرتبط ممکن است یک طلب باشند؛ تا رفع هم‌پوشانی درصد را صفر نگه دارید. مطالبات معوق هرگز خودکار وارد سناریو نمی‌شوند. فاکتورهای فعلی بر مبنای تومان در نظر گرفته می‌شوند.</p>
+                    <label htmlFor="receipt-source" className="block">منبع وصول فرضی
+                      <select id="receipt-source" className={fieldClass} value={scenario.receiptSource} onChange={e => setScenario(previous => ({ ...previous, receiptSource: e.target.value === 'checks' ? 'checks' : 'invoices' }))}>
+                        <option value="invoices">فقط فاکتورهای باز</option>
+                        <option value="checks">فقط چک‌های دریافتی در جریان</option>
+                      </select>
+                    </label>
+                    <label htmlFor="receipt-percent" className="block">سهم فرضی وصول منبع انتخابی: {formatNumber(scenario.receiptPercent)}٪<input id="receipt-percent" className="mt-3 w-full accent-emerald-600" type="range" min="0" max="100" step="10" value={scenario.receiptPercent} onChange={e => updateScenario('receiptPercent', e.target.value, 100)} /></label>
+                    <p className="text-sm leading-7 text-muted-foreground">درصد وصول، فرض شماست نه احتمال آماری. برای جلوگیری از جمع‌زدن دوباره یک طلب، فقط منبع انتخابی وارد سناریو می‌شود؛ فاکتورها و چک‌ها با هم جمع نمی‌شوند و مطالبات منبع دیگر لحاظ نمی‌شوند. این انتخاب تطبیق خودکار اسناد یا مجوز تسویه دوباره نیست. مطالبات معوق وارد سناریو نمی‌شوند. فاکتورهای فعلی بر مبنای تومان در نظر گرفته می‌شوند.</p>
                     <div aria-live="polite" className="grid gap-3 sm:grid-cols-2">
                       <Stat label="مانده پایان بازه / پایه" value={formatCurrency(baseline[baseline.length - 1].balance)} />
                       <Stat label="مانده پایان بازه / سناریو" value={formatCurrency(simulated[simulated.length - 1].balance)} />
