@@ -38,8 +38,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const refreshAuth = useCallback(async (): Promise<boolean> => {
     if (typeof window === 'undefined') return false
-    const token = typeof localStorage !== 'undefined' ? localStorage.getItem('access_token') : null
-    if (!token) {
+    const token = apiClient.getRefreshToken()
+    if (!token && !localStorage.getItem('access_token')) {
       setUser(null)
       return false
     }
@@ -49,22 +49,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       return true
     } catch (err: unknown) {
       const status = (err as { response?: { status?: number } })?.response?.status
-      if (status === 401) {
-        const refreshToken = apiClient.getRefreshToken?.()
-        if (refreshToken) {
-          try {
-            await apiClient.refreshToken()
-            const userData = await apiClient.getCurrentUser()
-            setUser(userData as AuthUser)
-            return true
-          } catch {
-            apiClient.logout?.()
-            setUser(null)
-            return false
-          }
-        }
-      }
-      apiClient.logout?.()
+      if (status === 401 || status === 403) apiClient.logout()
       setUser(null)
       return false
     }
@@ -73,12 +58,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
   useEffect(() => {
     let cancelled = false
     async function init() {
-      const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null
+      const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') || apiClient.getRefreshToken() : null
       if (!token) {
         if (!cancelled) setLoading(false)
         return
       }
-      const ok = await refreshAuth()
+      await refreshAuth()
       if (!cancelled) setLoading(false)
     }
     init()

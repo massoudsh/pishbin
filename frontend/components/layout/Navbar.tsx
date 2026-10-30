@@ -8,6 +8,7 @@ import { ThemeToggle } from '@/components/ThemeToggle'
 import { apiClient } from '@/lib/api'
 import { formatCurrency, formatNumber } from '@/lib/utils'
 import { fa } from '@/lib/fa'
+import { useAuth } from '@/contexts/AuthContext'
 
 interface AlertItem {
   budget_id: number
@@ -19,6 +20,7 @@ interface AlertItem {
 }
 
 export default function Navbar() {
+  const { logout } = useAuth()
   const pathname = usePathname()
   const router = useRouter()
   const [isAuthed, setIsAuthed] = useState(false)
@@ -71,8 +73,7 @@ export default function Navbar() {
   }, [notificationsOpen])
 
   const handleLogout = () => {
-    localStorage.removeItem('access_token')
-    localStorage.removeItem('refresh_token')
+    logout()
     setIsAuthed(false)
     setMobileMenuOpen(false)
     router.replace('/dashboard')

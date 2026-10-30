@@ -20,7 +20,7 @@ export function ProtectedRoute({ children, requireAuth = true }: ProtectedRouteP
   const pathname = usePathname()
 
   useEffect(() => {
-    if (!requireAuth || !loading) return
+    if (!requireAuth || loading) return
     if (!user) {
       const loginUrl = `/login?redirect=${encodeURIComponent(pathname || '/')}`
       router.replace(loginUrl)

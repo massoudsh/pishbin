@@ -4,13 +4,17 @@
 import axios, { AxiosInstance, AxiosError } from 'axios';
 import { DashboardSummarySchema, type DashboardSummary } from '@/lib/schemas/dashboard'
 import { FounderOverviewSchema, type FounderOverview } from '@/lib/schemas/founder'
-import { AccountsSchema, type Accounts } from '@/lib/schemas/account'
+import { AccountsSchema, type Accounts, type AccountCreate } from '@/lib/schemas/account'
+import { z } from 'zod'
 import {
   ExpensesByCategorySchema,
   IncomeVsExpensesSchema,
   type ExpensesByCategory,
   type IncomeVsExpenses,
 } from '@/lib/schemas/reports'
+
+const BusinessesSchema = z.array(z.object({ id: z.number().int().positive(), name: z.string(), is_default: z.boolean() }))
+export type Business = z.infer<typeof BusinessesSchema>[number]
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
 
@@ -34,8 +38,10 @@ export function getApiErrorMessage(error: unknown): string {
   return 'Something went wrong. Please try again.';
 }
 
-class ApiClient {
+export class ApiClient {
   private client: AxiosInstance;
+  private authRevision = 0;
+  private refreshPromise: Promise<{ access_token: string; refresh_token: string; token_type: string }> | null = null;
 
   constructor() {
     this.client = axios.create({
@@ -62,14 +68,20 @@ class ApiClient {
     // Response interceptor for error handling
     this.client.interceptors.response.use(
       (response) => response,
-      (error: AxiosError) => {
-        if (error.response?.status === 401) {
-          // Handle unauthorized - clear token.
-          // NOTE: We intentionally do NOT redirect to /login here to allow "guest mode"
-          // and avoid forcing auth UX for users who just want to explore the app.
+      async (error: AxiosError) => {
+        const config = error.config as (NonNullable<AxiosError['config']> & { _authRetry?: boolean }) | undefined;
+        const authEntry = ['/auth/login', '/auth/register', '/auth/refresh', '/auth/2fa/verify-login', '/auth/forgot-password', '/auth/reset-password'].includes(config?.url ?? '');
+        if (error.response?.status !== 401 || !config || authEntry) return Promise.reject(error);
+        if (config._authRetry || !this.getRefreshToken()) {
           this.clearToken();
+          return Promise.reject(error);
         }
-        return Promise.reject(error);
+        config._authRetry = true;
+        const currentToken = this.getToken();
+        if (!currentToken || config.headers.Authorization === `Bearer ${currentToken}`) {
+          await this.refreshToken();
+        }
+        return this.client.request(config);
       }
     );
   }
@@ -80,12 +92,14 @@ class ApiClient {
   }
 
   private clearToken(): void {
+    this.authRevision++;
     if (typeof window === 'undefined') return;
     localStorage.removeItem('access_token');
     localStorage.removeItem('refresh_token');
   }
 
   setToken(token: string): void {
+    this.authRevision++;
     if (typeof window === 'undefined') return;
     localStorage.setItem('access_token', token);
   }
@@ -102,15 +116,24 @@ class ApiClient {
 
   /** Refresh access token using refresh token. Returns new token data or throws. */
   async refreshToken(): Promise<{ access_token: string; refresh_token: string; token_type: string }> {
+    if (this.refreshPromise) return this.refreshPromise;
     const refresh = this.getRefreshToken();
     if (!refresh) throw new Error('No refresh token');
-    const response = await this.client.post('/auth/refresh', { refresh_token: refresh });
-    const data = response.data;
-    if (data.access_token) {
-      this.setToken(data.access_token);
-      this.setRefreshToken(data.refresh_token);
-    }
-    return data;
+    const revision = this.authRevision;
+    this.refreshPromise = this.client.post('/auth/refresh', { refresh_token: refresh })
+      .then(response => {
+        if (revision !== this.authRevision) throw new Error('Session changed during refresh');
+        const data = z.object({ access_token: z.string().min(1), refresh_token: z.string().min(1), token_type: z.string() }).parse(response.data);
+        this.setToken(data.access_token);
+        this.setRefreshToken(data.refresh_token);
+        return data;
+      })
+      .catch(error => {
+        if (revision === this.authRevision && axios.isAxiosError(error) && [401, 403].includes(error.response?.status ?? 0)) this.clearToken();
+        throw error;
+      })
+      .finally(() => { this.refreshPromise = null; });
+    return this.refreshPromise;
   }
 
   logout(): void {
@@ -226,6 +249,11 @@ class ApiClient {
     return response.data;
   }
 
+  async getBusinesses(): Promise<Business[]> {
+    const response = await this.client.get('/businesses/');
+    return BusinessesSchema.parse(response.data);
+  }
+
   // Account endpoints
   async getAccounts() {
     const response = await this.client.get('/accounts');
@@ -237,7 +265,7 @@ class ApiClient {
     return response.data;
   }
 
-  async createAccount(data: any) {
+  async createAccount(data: AccountCreate) {
     const response = await this.client.post('/accounts', data);
     return response.data;
   }

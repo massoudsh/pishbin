@@ -43,14 +43,14 @@ The new desk consumes existing authenticated GET endpoints under `/api/v1`: `/ac
 
 | Existing flow | Endpoint family | Source-review finding |
 | --- | --- | --- |
-| Account setup | `/businesses`, `/accounts` | Backend account creation requires `business_id`; current frontend account form omits it. Onboarding remains a release blocker to resolve with an explicit business selection. |
+| Account setup | `/businesses`, `/accounts` | Account creation now loads owned businesses, selects the default (or sole business), and sends the required positive `business_id`. Failed/empty business loads block creation; edits retain their existing business. Decimal-string balances from the backend are accepted and validated. Live-backend validation remains outstanding. |
 | Receivable lifecycle | `/customers`, `/invoices`, `/customers/{id}/score` | Marking paid updates invoice state/date, not the bank balance or ledger. Do not describe it as a reconciled cash receipt. |
 | Check lifecycle | `/checks`, `/checks/cash-flow-forecast` | Changing check state does not itself create a ledger transaction or adjust balances. |
 | Forecasting | `/dashboard/cash-flow-forecast`, `/alerts/cash-flow` | Existing backend forecast combines account balances, invoice/check events and historical trends; mixed currencies and duplicate receipt representation need reconciliation before stronger reliability claims. |
 | Bank reconciliation | `/reconciliation/bank-statement` | Read-only CSV matching, not autonomous bank synchronization. |
 | Bank messages | `/banking-messages` | Parsing/import is separate from reviewed transaction creation. |
 | Payments | `/payments` | ZarinPal request/callback/history and income recording are distinct from collections reminder preparation. |
-| Authentication | `/auth` | ProtectedRoute loading guard and refresh-token handling need a dedicated integration-tested fix; the new desk reports authentication failure explicitly. |
+| Authentication | `/auth` | ProtectedRoute now waits for initialization before redirecting. The API client shares one refresh attempt across concurrent 401s, retries each request at most once, preserves credentials on transient refresh failures, and prevents late refresh from undoing logout. Unit/adapter tests pass; live integration remains outstanding. |
 | Other modules | `/transactions`, `/budgets`, `/goals`, `/recurring`, `/reports`, `/backup` | Existing operational features remain; they are not all included in this planning baseline. |
 
 ## Planning contract and boundaries
@@ -67,7 +67,7 @@ The new desk consumes existing authenticated GET endpoints under `/api/v1`: `/ac
 
 ## Release priorities and business model hypothesis
 
-Before a production pilot: repair account/business onboarding, auth refresh/route guarding, currency consistency, settlement-to-ledger linkage and stable complete data loading. Test these against the actual backend. These issues are documented, not represented as fixed by the new interface.
+Before a production pilot: validate the repaired account/business onboarding and auth refresh/route guarding against the actual backend. Currency consistency, settlement-to-ledger linkage and stable complete data loading remain open implementation priorities.
 
 Then interview 5–10 owners using their existing reconciliation process: can they locate a real shortage, explain its cause and select an action without assistance? Compare this with their current accounting report, not merely a polished screenshot.
 
@@ -75,6 +75,6 @@ A subscription for a daily decision workspace is a hypothesis worth testing afte
 
 ## Validation performed
 
-Twenty calculation/validation tests, whole-frontend TypeScript checking, focused ESLint and whitespace checks. Repaired a pre-existing invoice JSX error and case-conflicting Button wrapper imports. No production build, browser/visual test, deployment, live payment test or authenticated API integration test was performed.
+Thirty-four passing checks across calculation/validation tests, account schemas, in-memory Axios authentication scenarios and hook-stubbed route-guard unit tests; whole-frontend TypeScript checking, focused ESLint and whitespace checks. Repaired invoice JSX, case-conflicting Button wrapper imports, business selection/payload, route loading guard and refresh handling. No production build, browser/visual test, deployment, live payment test or authenticated backend integration test was performed.
 
 Image briefs are in `docs/decision-desk-image-prompts.md`; the interface works without generated assets.

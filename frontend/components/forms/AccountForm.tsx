@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect } from 'react'
 import { AccountCreateSchema, AccountUpdateSchema, type AccountCreate, type AccountUpdate, type Account } from '@/lib/schemas/account'
-import { apiClient } from '@/lib/api'
+import { apiClient, getApiErrorMessage, type Business } from '@/lib/api'
 import Button from '@/components/ui/form-button'
 
 const ACCOUNT_TYPES = [
@@ -25,6 +25,11 @@ export default function AccountForm({ account, onSuccess, onCancel }: AccountFor
   const isEdit = Boolean(account?.id)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [businesses, setBusinesses] = useState<Business[]>([])
+  const [businessId, setBusinessId] = useState('')
+  const [businessesLoading, setBusinessesLoading] = useState(!isEdit)
+  const [businessesError, setBusinessesError] = useState('')
+  const [businessLoadAttempt, setBusinessLoadAttempt] = useState(0)
   const [formData, setFormData] = useState({
     name: account?.name ?? '',
     account_type: account?.account_type ?? 'checking',
@@ -42,6 +47,24 @@ export default function AccountForm({ account, onSuccess, onCancel }: AccountFor
       description: account?.description ?? '',
     })
   }, [account])
+
+  useEffect(() => {
+    if (isEdit) return
+    let cancelled = false
+    setBusinessesLoading(true)
+    setBusinessesError('')
+    apiClient.getBusinesses().then(items => {
+      if (cancelled) return
+      setBusinesses(items)
+      const selected = items.find(item => item.is_default) ?? (items.length === 1 ? items[0] : undefined)
+      setBusinessId(selected ? String(selected.id) : '')
+    }).catch(err => {
+      if (!cancelled) setBusinessesError(getApiErrorMessage(err))
+    }).finally(() => {
+      if (!cancelled) setBusinessesLoading(false)
+    })
+    return () => { cancelled = true }
+  }, [isEdit, businessLoadAttempt])
 
   const handleChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
@@ -74,7 +97,7 @@ export default function AccountForm({ account, onSuccess, onCancel }: AccountFor
         const parsed = AccountUpdateSchema.parse(payload) as AccountUpdate
         await apiClient.updateAccount(account.id, parsed)
       } else {
-        const parsed = AccountCreateSchema.parse(payload) as AccountCreate
+        const parsed = AccountCreateSchema.parse({ ...payload, business_id: Number(businessId) }) as AccountCreate
         await apiClient.createAccount(parsed)
       }
       onSuccess()
@@ -96,6 +119,17 @@ export default function AccountForm({ account, onSuccess, onCancel }: AccountFor
       {error && (
         <div className="rounded-md bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700" role="alert">
           {error}
+        </div>
+      )}
+      {!isEdit && (
+        <div>
+          <label htmlFor="business_id" className="block text-sm font-medium text-foreground">کسب‌وکار / شعبه</label>
+          <select id="business_id" required value={businessId} onChange={event => setBusinessId(event.target.value)} disabled={businessesLoading || Boolean(businessesError)} className="mt-1 block w-full rounded-xl border border-border bg-background px-3 py-2 text-foreground">
+            <option value="">{businessesLoading ? 'در حال دریافت کسب‌وکارها…' : 'کسب‌وکار را انتخاب کنید'}</option>
+            {businesses.map(business => <option key={business.id} value={business.id}>{business.name}</option>)}
+          </select>
+          {businessesError && <div role="alert" className="mt-2 text-sm text-destructive">{businessesError} <Button variant="secondary" onClick={() => setBusinessLoadAttempt(value => value + 1)}>تلاش دوباره</Button></div>}
+          {!businessesLoading && !businessesError && businesses.length === 0 && <p role="status" className="mt-2 text-sm text-muted-foreground">کسب‌وکاری برای این حساب کاربری ثبت نشده است؛ ایجاد حساب مالی تا ثبت کسب‌وکار امکان‌پذیر نیست.</p>}
         </div>
       )}
       <div>
@@ -179,7 +213,7 @@ export default function AccountForm({ account, onSuccess, onCancel }: AccountFor
         <Button type="button" variant="secondary" onClick={onCancel} disabled={loading}>
           Cancel
         </Button>
-        <Button type="submit" disabled={loading}>
+        <Button type="submit" disabled={loading || (!isEdit && (businessesLoading || Boolean(businessesError) || !businessId))}>
           {loading ? 'Saving...' : isEdit ? 'Update account' : 'Create account'}
         </Button>
       </div>
