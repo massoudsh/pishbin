@@ -260,6 +260,25 @@ export class ApiClient {
     return AccountsSchema.parse(response.data) as Accounts;
   }
 
+  async getAllAccounts() {
+    const accounts: Accounts = [];
+    let afterId = 0;
+    for (;;) {
+      const response = await this.client.get('/accounts', {
+        params: { limit: 100, ...(afterId ? { after_id: afterId } : {}) },
+      });
+      const page = AccountsSchema.parse(response.data);
+      for (const account of page) {
+        if (!Number.isSafeInteger(account.id) || account.id <= afterId) {
+          throw new Error('Account pagination did not advance in ID order');
+        }
+        afterId = account.id;
+        accounts.push(account);
+      }
+      if (page.length < 100) return accounts;
+    }
+  }
+
   async getAccount(id: number) {
     const response = await this.client.get(`/accounts/${id}`);
     return response.data;

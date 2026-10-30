@@ -23,12 +23,15 @@ class AccountsService:
         business_id: Optional[int] = None,
         skip: int = 0,
         limit: int = 100,
+        after_id: Optional[int] = None,
     ) -> List[Account]:
         """Get all accounts for a user, optionally filtered by business."""
         query = self.db.query(Account).filter(Account.user_id == user_id)
         if business_id is not None:
             query = query.filter(Account.business_id == business_id)
-        return query.offset(skip).limit(limit).all()
+        if after_id is not None:
+            query = query.filter(Account.id > after_id)
+        return query.order_by(Account.id).offset(skip).limit(limit).all()
     
     def get_account(self, account_id: int, user_id: int) -> Optional[Account]:
         """Get a specific account by ID."""

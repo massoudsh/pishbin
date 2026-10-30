@@ -2,7 +2,7 @@
 Accounts API endpoints.
 """
 from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.dependencies import get_current_user
@@ -18,14 +18,15 @@ router = APIRouter()
 @router.get("/", response_model=List[AccountSchema])
 async def get_accounts(
     business_id: Optional[int] = None,
-    skip: int = 0,
-    limit: int = 100,
+    skip: int = Query(default=0, ge=0),
+    limit: int = Query(default=100, ge=1, le=1000),
+    after_id: Optional[int] = Query(default=None, gt=0),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """Get all accounts for the current user, optionally filtered by business."""
     service = AccountsService(db)
-    return service.get_user_accounts(current_user.id, business_id=business_id, skip=skip, limit=limit)
+    return service.get_user_accounts(current_user.id, business_id=business_id, skip=skip, limit=limit, after_id=after_id)
 
 
 @router.get("/{account_id}", response_model=AccountSchema)

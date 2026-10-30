@@ -76,7 +76,7 @@ Multi-business/multi-branch workspaces. Every user gets one default business aut
 - **DELETE** `/businesses/{id}` — `400` if it's the user's only business or still has accounts
 
 ### Accounts (`/accounts`)
-- **GET** `/accounts?business_id=&skip=0&limit=100` — optionally filter by business
+- **GET** `/accounts?business_id=&skip=0&limit=100&after_id=` — owned accounts in ascending ID order, optionally filtered by business. `skip >= 0`, `1 <= limit <= 1000`, optional `after_id > 0`; invalid values return `422`. To read all accounts without offset shifts from deleted earlier rows, use `skip=0` and the last returned ID as `after_id` until a short/empty page. Cursor traversal is not a transactionally consistent snapshot.
 - **GET** `/accounts/{id}`
 - **POST** `/accounts` — body: `{ business_id, name, account_type, balance, currency, description }`. `404` if `business_id` doesn't belong to the current user.
 - **PUT** `/accounts/{id}` — partial update

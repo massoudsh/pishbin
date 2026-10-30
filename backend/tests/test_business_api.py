@@ -3,6 +3,8 @@ Business (multi-workspace) API tests using FastAPI TestClient.
 """
 from fastapi.testclient import TestClient
 
+import pytest
+
 API = "/api/v1"
 
 
@@ -119,3 +121,39 @@ def test_cannot_delete_business_with_accounts(client: TestClient):
     # only for the one holding accounts; sanity check default_id still exists.
     resp = client.get(f"{API}/businesses/{default_id}", headers=headers)
     assert resp.status_code == 200
+
+
+def test_account_cursor_preserves_order_scope_and_deleted_page_boundaries(client: TestClient):
+    token = _register_and_login(client, "cursorowner", "cursorowner@example.com")
+    headers = _auth_headers(token)
+    business_id = client.get(f"{API}/businesses/", headers=headers).json()[0]["id"]
+    second = client.post(f"{API}/businesses/", json={"name": "Second"}, headers=headers).json()["id"]
+    ids = []
+    for index in range(5):
+        response = client.post(f"{API}/accounts/", json={
+            "business_id": business_id if index < 4 else second,
+            "name": f"Account {index}", "account_type": "checking",
+        }, headers=headers)
+        assert response.status_code == 201, response.text
+        ids.append(response.json()["id"])
+    first = client.get(f"{API}/accounts/", params={"limit": 2}, headers=headers)
+    assert first.status_code == 200
+    assert [a["id"] for a in first.json()] == ids[:2]
+    assert client.delete(f"{API}/accounts/{ids[0]}", headers=headers).status_code == 204
+    next_page = client.get(f"{API}/accounts/", params={"after_id": ids[1], "limit": 2}, headers=headers)
+    assert [a["id"] for a in next_page.json()] == ids[2:4]
+    filtered = client.get(f"{API}/accounts/", params={"after_id": ids[1], "business_id": business_id}, headers=headers)
+    assert [a["id"] for a in filtered.json()] == ids[2:4]
+    empty = client.get(f"{API}/accounts/", params={"after_id": ids[-1]}, headers=headers)
+    assert empty.json() == []
+    other = _auth_headers(_register_and_login(client, "cursorother", "cursorother@example.com"))
+    assert client.get(f"{API}/accounts/", params={"after_id": ids[1]}, headers=other).json() == []
+
+
+@pytest.mark.parametrize("params", [{"limit": 0}, {"limit": 1001}, {"skip": -1}, {"after_id": 0}, {"after_id": -1}])
+def test_account_pagination_rejects_invalid_parameters(client: TestClient, params):
+    from uuid import uuid4
+    name = f"page{uuid4().hex[:12]}"
+    headers = _auth_headers(_register_and_login(client, name, f"{name}@example.com"))
+    response = client.get(f"{API}/accounts/", params=params, headers=headers)
+    assert response.status_code == 422

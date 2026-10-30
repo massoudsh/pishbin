@@ -43,12 +43,8 @@ export default function DecisionsPage() {
     setUnauthorized(false)
     try {
       const [accounts, checks, invoices, customers] = await Promise.all([
-        apiClient.getAccounts(), apiClient.getChecks(), apiClient.getInvoices(), apiClient.getCustomers(),
+        apiClient.getAllAccounts(), apiClient.getChecks(), apiClient.getInvoices(), apiClient.getCustomers(),
       ])
-      if (accounts.length >= 100) {
-        setError('فهرست حساب‌ها به سقف دریافت این نسخه رسیده است؛ برای جلوگیری از محاسبه با مانده ناقص، میز تصمیم نمایش داده نمی‌شود.')
-        return
-      }
       setData(DecisionDataSchema.parse({ accounts, checks, invoices, customers }))
       setToday(tehranToday())
       setUpdatedAt(new Date().toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' }))
