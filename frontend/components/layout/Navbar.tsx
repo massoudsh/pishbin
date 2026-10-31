@@ -2,272 +2,126 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { useEffect, useMemo, useState, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { ThemeToggle } from '@/components/ThemeToggle'
-import { apiClient } from '@/lib/api'
-import { formatCurrency, formatNumber } from '@/lib/utils'
-import { fa } from '@/lib/fa'
+import { apiClient, getApiErrorMessage } from '@/lib/api'
+import { formatCurrency } from '@/lib/utils'
+import { shiftDate, tehranToday } from '@/lib/decision-center'
 import { useAuth } from '@/contexts/AuthContext'
 
-interface AlertItem {
-  budget_id: number
-  budget_name: string
-  spent: number
-  budget_amount: number
-  percentage: number
-  alert_type: string
-}
+const navItems = [
+  ['/decisions', 'میز تصمیم و نقدینگی'], ['/dashboard', 'نمای کلی'],
+  ['/invoices', 'فاکتورها و مطالبات'], ['/checks', 'چک‌ها و تعهدات'],
+  ['/customers', 'مشتریان'], ['/transactions', 'تراکنش‌ها'], ['/accounts', 'حساب‌ها'],
+  ['/reports', 'گزارش‌ها'], ['/reconciliation', 'تطبیق بانکی'], ['/budgets', 'بودجه‌ها'],
+  ['/goals', 'هدف‌ها'], ['/recurring', 'تراکنش تکرارشونده'], ['/payments', 'پرداخت‌ها'],
+  ['/banking-messages', 'پیام‌های بانکی'], ['/investors', 'سرمایه‌گذاران'], ['/settings', 'تنظیمات'], ['/help', 'راهنما'],
+] as const
+
+type Notice = { id: string; title: string; detail: string; href: string }
 
 export default function Navbar() {
-  const { logout } = useAuth()
+  const { user, logout } = useAuth()
   const pathname = usePathname()
   const router = useRouter()
-  const [isAuthed, setIsAuthed] = useState(false)
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const [alerts, setAlerts] = useState<AlertItem[]>([])
+  const [query, setQuery] = useState('')
+  const [notices, setNotices] = useState<Notice[]>([])
   const [notificationsOpen, setNotificationsOpen] = useState(false)
-  const notificationsRef = useRef<HTMLDivElement>(null)
-
-  const navItems = useMemo(
-    () => [
-      { href: '/decisions', label: 'میز تصمیم' },
-      { href: '/dashboard', label: fa.nav.overview },
-      { href: '/transactions', label: fa.nav.expenses },
-      { href: '/reports', label: fa.nav.reports },
-      { href: '/investors', label: fa.nav.investors },
-      { href: '/recurring', label: fa.nav.automations },
-      { href: '/checks', label: fa.nav.checks },
-      { href: '/invoices', label: fa.nav.invoices },
-      { href: '/customers', label: fa.nav.customers },
-      { href: '/reconciliation', label: fa.nav.reconciliation },
-      { href: '/accounts', label: fa.nav.accounts },
-      { href: '/payments', label: fa.nav.payments },
-      { href: '/help', label: fa.settings.help },
-    ],
-    []
-  )
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+  const [retry, setRetry] = useState(0)
+  const [offline, setOffline] = useState(false)
+  const shellRef = useRef<HTMLElement>(null)
+  const menuRef = useRef<HTMLDetailsElement>(null)
+  const noticeRef = useRef<HTMLDetailsElement>(null)
+  const environment = ({ production: 'عملیاتی', staging: 'آزمایشی', development: 'توسعه', sandbox: 'تمرینی' } as Record<string, string>)[process.env.NEXT_PUBLIC_APP_ENV || ''] || 'محیط مشخص نشده'
 
   useEffect(() => {
-    const token = localStorage.getItem('access_token')
-    setIsAuthed(Boolean(token))
-  }, [pathname])
+    const shell = shellRef.current
+    if (!shell) return
+    const observer = new ResizeObserver(() => shell.style.setProperty('--app-header-height', `${shell.getBoundingClientRect().height}px`))
+    observer.observe(shell)
+    return () => observer.disconnect()
+  }, [])
 
   useEffect(() => {
-    setMobileMenuOpen(false)
-  }, [pathname])
+    menuRef.current?.removeAttribute('open')
+    noticeRef.current?.removeAttribute('open')
+    setNotificationsOpen(false)
+    setQuery('')
+  }, [pathname, user?.id])
 
   useEffect(() => {
-    if (!isAuthed) return
-    apiClient.getAlerts().then(setAlerts).catch(() => setAlerts([]))
-  }, [isAuthed, pathname])
+    const update = () => setOffline(!navigator.onLine)
+    update()
+    window.addEventListener('online', update)
+    window.addEventListener('offline', update)
+    return () => { window.removeEventListener('online', update); window.removeEventListener('offline', update) }
+  }, [])
 
   useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (notificationsRef.current && !notificationsRef.current.contains(event.target as Node)) {
-        setNotificationsOpen(false)
-      }
-    }
-    if (notificationsOpen) document.addEventListener('click', handleClickOutside)
-    return () => document.removeEventListener('click', handleClickOutside)
-  }, [notificationsOpen])
+    let active = true
+    setNotices([])
+    setError('')
+    if (!user || !notificationsOpen) return
+    setLoading(true)
+    const today = tehranToday()
+    Promise.all([apiClient.getInvoices(), apiClient.getChecks(), apiClient.getAlerts()]).then(([invoices, checks, budgets]) => {
+      if (!active) return
+      setNotices([
+        ...invoices.filter(i => ['issued', 'overdue'].includes(i.status) && i.due_date < today).map(i => ({ id: `invoice-${i.id}`, title: `فاکتور معوق #${i.id}`, detail: formatCurrency(Number(i.amount)), href: `/invoices#invoice-${i.id}` })),
+        ...checks.filter(c => (c.status === 'pending' && c.due_date <= shiftDate(today, 7)) || (c.status === 'bounced' && c.direction === 'issued')).map(c => ({ id: `check-${c.id}`, title: c.status === 'bounced' ? 'چک صادره برگشتی' : c.direction === 'issued' ? 'تعهد پرداخت تا هفت روز آینده' : 'چک دریافتی نیازمند پیگیری', detail: `${c.counterparty_name} · ${formatCurrency(Number(c.amount))}`, href: `/checks#check-${c.id}` })),
+        ...budgets.map(b => ({ id: `budget-${b.budget_id}`, title: `هشدار بودجه: ${b.budget_name}`, detail: `${formatCurrency(b.spent)} / ${formatCurrency(b.budget_amount)}`, href: '/budgets' })),
+      ])
+    }).catch(err => { if (active) setError(getApiErrorMessage(err)) }).finally(() => { if (active) setLoading(false) })
+    return () => { active = false }
+  }, [user?.id, notificationsOpen, retry, user])
 
-  const handleLogout = () => {
-    logout()
-    setIsAuthed(false)
-    setMobileMenuOpen(false)
-    router.replace('/dashboard')
+  function closeOnEscape(event: React.KeyboardEvent<HTMLDetailsElement>) {
+    if (event.key !== 'Escape') return
+    event.currentTarget.removeAttribute('open')
+    event.currentTarget.querySelector('summary')?.focus()
+  }
+
+  function navigation() {
+    const items = navItems.filter(([, label]) => label.includes(query.trim()))
+    return <>
+      <label className="block px-2 text-sm">جست‌وجوی بخش‌ها<input type="search" value={query} onChange={event => setQuery(event.target.value)} className="my-2 w-full rounded-xl border border-border p-2" /></label>
+      <nav aria-label="بخش‌های برنامه">{items.map(([href, label]) => <Link key={href} href={href} aria-current={pathname === href || pathname.startsWith(`${href}/`) ? 'page' : undefined} className="nav-link">{label}</Link>)}</nav>
+      {!items.length && <p role="status" className="p-3 text-sm">بخشی با این نام پیدا نشد.</p>}
+    </>
   }
 
   return (
-    <nav className="bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl border-b border-gray-200/80 dark:border-gray-700/80 sticky top-0 z-40">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between h-16 items-center">
-          <div className="flex items-center gap-6">
-            <Link href="/dashboard" className="flex items-center gap-2.5">
-              <div className="h-9 w-9 rounded-xl bg-primary-500 text-white flex items-center justify-center font-bold text-sm shadow-sm">
-                PB
-              </div>
-              <div className="font-semibold text-gray-900 dark:text-white">پیش‌بین</div>
-              {!isAuthed && (
-                <span className="mr-1 text-xs font-medium bg-yellow-50 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-200 border border-yellow-200 dark:border-yellow-700 px-2 py-0.5 rounded-full hidden sm:inline">
-                  {fa.common.guest}
-                </span>
-              )}
-            </Link>
-
-            <div className="hidden xl:flex max-w-[50vw] items-center gap-1 overflow-x-auto whitespace-nowrap">
-              {navItems.map((item, i) => {
-                const active = pathname === item.href
-                return (
-                  <Link
-                    key={`nav-${i}-${item.label}`}
-                    href={item.href}
-                    className={[
-                      'px-3 py-2 rounded-xl text-sm font-medium transition-colors',
-                      active
-                        ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400'
-                        : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100/80 dark:hover:bg-gray-800/80',
-                    ].join(' ')}
-                  >
-                    {item.label}
-                  </Link>
-                )
-              })}
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2">
-            {isAuthed && (
-              <div className="relative" ref={notificationsRef}>
-                <button
-                  type="button"
-                  onClick={() => setNotificationsOpen((o) => !o)}
-                  className="relative p-2 rounded-md text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-primary-500"
-                  aria-label={alerts.length > 0 ? `${alerts.length} ${fa.nav.notifications}` : fa.nav.notifications}
-                  aria-expanded={notificationsOpen}
-                >
-                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden>
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-                  </svg>
-                  {alerts.length > 0 && (
-                    <span className="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-medium text-white">
-                      {alerts.length > 9 ? '9+' : alerts.length}
-                    </span>
-                  )}
-                </button>
-                {notificationsOpen && (
-                  <div className="absolute right-0 mt-2 w-72 rounded-2xl border border-gray-200/90 dark:border-gray-700/90 bg-white dark:bg-gray-800 shadow-soft-lg py-2 z-50">
-                    <div className="px-3 py-2 border-b border-gray-100 dark:border-gray-700">
-                      <span className="text-sm font-semibold text-gray-900 dark:text-white">{fa.nav.notifications}</span>
-                    </div>
-                    {alerts.length === 0 ? (
-                      <p className="px-3 py-4 text-sm text-gray-500 dark:text-gray-400">{fa.nav.noNewAlerts}</p>
-                    ) : (
-                      <ul className="max-h-64 overflow-y-auto">
-                        {alerts.map((a) => (
-                          <li key={a.budget_id}>
-                            <Link
-                              href="/budgets"
-                              onClick={() => setNotificationsOpen(false)}
-                              className="block px-3 py-2 text-sm hover:bg-gray-50 dark:hover:bg-gray-700/50"
-                            >
-                              <span className="font-medium text-gray-900 dark:text-white">{a.budget_name}</span>
-                              <span className={a.alert_type === 'critical' ? ' text-red-600 dark:text-red-400' : ' text-gray-600 dark:text-gray-400'}>
-                                {' '}{formatCurrency(a.spent)} / {formatCurrency(a.budget_amount)} ({formatNumber(Math.round(a.percentage))}٪)
-                              </span>
-                            </Link>
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                    {alerts.length > 0 && (
-                      <Link
-                        href="/budgets"
-                        onClick={() => setNotificationsOpen(false)}
-                        className="block px-3 py-2 text-sm font-medium text-primary-600 dark:text-primary-400 hover:bg-gray-50 dark:hover:bg-gray-700/50 border-t border-gray-100 dark:border-gray-700"
-                      >
-                        {fa.nav.viewAllBudgets} ←
-                      </Link>
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
-            <ThemeToggle />
-            <button
-              type="button"
-              className="xl:hidden p-2 rounded-md text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-primary-500"
-              aria-expanded={mobileMenuOpen}
-              aria-label="Toggle menu"
-              onClick={() => setMobileMenuOpen((o) => !o)}
-            >
-              <span className="sr-only">Toggle menu</span>
-              {mobileMenuOpen ? (
-                <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden>
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              ) : (
-                <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden>
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                </svg>
-              )}
-            </button>
-
-            <div className="hidden sm:flex items-center gap-2">
-              {isAuthed ? (
-                <>
-                  <Link href="/settings" className="text-sm text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white">
-                    {fa.common.settings}
-                  </Link>
-                  <Button variant="secondary" onClick={handleLogout}>
-                    {fa.common.signOut}
-                  </Button>
-                </>
-              ) : (
-                <>
-                  <Link href="/login" className="text-sm text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white">
-                    {fa.common.signIn}
-                  </Link>
-                  <Link href="/register">
-                    <Button>{fa.common.createAccount}</Button>
-                  </Link>
-                </>
-              )}
-            </div>
-          </div>
+    <header ref={shellRef} className="app-shell">
+      <div className="app-topbar">
+        <div className="flex flex-wrap items-center gap-3">
+          <Link href="/decisions" className="text-lg font-bold text-accent">پیش‌بین</Link>
+          <span className="rounded-full border border-border px-2 py-1 text-xs">{environment}</span>
+          <span className="text-xs text-muted-foreground">{user ? 'داده‌های همه کسب‌وکارهای شما' : 'حالت مهمان'}</span>
         </div>
-
-        {mobileMenuOpen && (
-          <div className="xl:hidden border-t border-gray-200 dark:border-gray-700 py-4">
-            <div className="flex flex-col gap-1">
-              {navItems.map((item, i) => {
-                const active = pathname === item.href
-                return (
-                  <Link
-                    key={`mobile-nav-${i}-${item.label}`}
-                    href={item.href}
-                    className={[
-                      'px-3 py-2 rounded-xl text-sm font-medium transition-colors',
-                      active
-                        ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400'
-                        : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100/80 dark:hover:bg-gray-800/80',
-                    ].join(' ')}
-                  >
-                    {item.label}
-                  </Link>
-                )
-              })}
-              <div className="mt-2 pt-2 border-t border-gray-100 dark:border-gray-700 flex flex-col gap-1">
-                {isAuthed ? (
-                  <>
-                    <Link href="/settings" className="px-3 py-2 rounded-md text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800">
-                      {fa.common.settings}
-                    </Link>
-                    <button
-                      type="button"
-                      onClick={handleLogout}
-                      className="px-3 py-2 rounded-md text-sm font-medium text-right text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
-                    >
-                      {fa.common.signOut}
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    <Link href="/login" className="px-3 py-2 rounded-md text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800">
-                      {fa.common.signIn}
-                    </Link>
-                    <Link href="/register" className="px-3 py-2 rounded-md text-sm font-medium bg-primary-600 text-white hover:bg-primary-700 dark:bg-primary-500 dark:hover:bg-primary-600 text-center">
-                      {fa.common.createAccount}
-                    </Link>
-                  </>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
+        <div className="flex items-center gap-3">
+          {user && <details ref={noticeRef} onKeyDown={closeOnEscape} onToggle={event => setNotificationsOpen(event.currentTarget.open)}>
+            <summary className="cursor-pointer rounded-xl p-2">پیگیری‌ها</summary>
+            <section aria-label="پیگیری‌های مالی" className="app-notifications glass-surface glass-elevated">
+              <h2 className="font-semibold">اسناد نیازمند بررسی</h2>
+              <p className="my-2 text-xs text-muted-foreground">بر اساس اسناد ثبت‌شده؛ نه پیام ارسال‌شده یا پیش‌بینی قطعی. نمایش هنگام بازکردن تازه می‌شود.</p>
+              {loading ? <p role="status">در حال دریافت…</p> : error ? <div role="alert"><p>{error}</p><Button variant="outline" onClick={() => setRetry(v => v + 1)}>تلاش دوباره</Button></div> : <>
+                {!notices.length && <p role="status">در اسناد دریافت‌شده موردی برای پیگیری نیست.</p>}
+                <ul>{notices.slice(0, 20).map(notice => <li key={notice.id}><Link className="nav-link" href={notice.href}><span className="block font-medium">{notice.title}</span><span className="text-sm text-muted-foreground">{notice.detail}</span></Link></li>)}</ul>
+                {notices.length > 20 && <p className="text-sm">۲۰ مورد نخست نمایش داده شده است؛ همه اسناد را در بخش مربوط بررسی کنید.</p>}
+              </>}
+              <Link className="nav-link text-accent" href="/decisions">بررسی نقدینگی و صف وصول</Link>
+            </section>
+          </details>}
+          <ThemeToggle />
+          {user ? <><Link className="text-sm" href="/settings">حساب کاربری</Link><Button variant="outline" size="sm" onClick={() => { logout(); setNotices([]); router.replace('/dashboard') }}>خروج</Button></> : <Link href="/login" className="nav-link">ورود</Link>}
+        </div>
       </div>
-    </nav>
+      {offline && <p role="status" className="status-warning px-5 py-2 text-sm">اتصال اینترنت برقرار نیست؛ اطلاعات ممکن است قدیمی باشد. پیش از ثبت عملیات دوباره متصل شوید.</p>}
+      <aside className="app-sidebar glass-surface glass-subtle" aria-label="ناوبری اصلی">{navigation()}</aside>
+      <details ref={menuRef} className="app-mobile-menu" onKeyDown={closeOnEscape}><summary className="cursor-pointer p-2 font-medium">فهرست بخش‌ها</summary>{navigation()}</details>
+    </header>
   )
 }
-

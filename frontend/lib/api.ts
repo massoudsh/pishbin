@@ -18,24 +18,39 @@ export type Business = z.infer<typeof BusinessesSchema>[number]
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
 
-/** Get a user-friendly error message from an Axios or API error. */
-export function getApiErrorMessage(error: unknown): string {
+export const apiErrorMessages = {
+  fa: {
+    network: 'ارتباط با سرور برقرار نشد. اتصال را بررسی کنید؛ پیش از تکرار عملیات مالی، وضعیت سند را دوباره دریافت کنید.',
+    400: 'درخواست قابل انجام نیست. مقادیر و وضعیت فعلی سند را بررسی کنید.',
+    401: 'نشست شما معتبر نیست. دوباره وارد حساب شوید.',
+    403: 'اجازه انجام این عملیات را ندارید. دسترسی حساب را بررسی کنید.',
+    404: 'مورد درخواستی پیدا نشد. فهرست را به‌روز کنید.',
+    409: 'عملیات با وضعیت فعلی سند سازگار نیست. سند و سابقه تسویه را به‌روز و بررسی کنید.',
+    422: 'اطلاعات معتبر نیست. فیلدهای الزامی، مبلغ، تاریخ و حساب انتخابی را بررسی کنید.',
+    429: 'درخواست‌ها بیش از حد است. کمی بعد دوباره تلاش کنید.',
+    system: 'دریافت نتیجه کامل نشد. پیش از تکرار عملیات مالی، وضعیت سند را بررسی کنید؛ اگر مشکل ادامه داشت با پشتیبانی تماس بگیرید.',
+  },
+  en: {
+    network: 'Cannot reach the server. Check your connection and reload the record before retrying a financial action.',
+    400: 'This request cannot be completed. Check the values and current record status.',
+    401: 'Your session is not valid. Please sign in again.',
+    403: 'You do not have permission for this action. Check your account access.',
+    404: 'The requested record was not found. Refresh the list.',
+    409: 'This action conflicts with the current record. Refresh and review its settlement history.',
+    422: 'Check required fields, amount, dates, and the selected account.',
+    429: 'Too many requests. Please try again later.',
+    system: 'The result could not be confirmed. Check the record before retrying a financial action; contact support if this continues.',
+  },
+} as const
+
+export function getApiErrorMessage(error: unknown, locale: 'fa' | 'en' = 'fa'): string {
+  const messages = apiErrorMessages[locale]
   if (axios.isAxiosError(error)) {
-    const data = error.response?.data;
-    if (data?.detail) {
-      if (typeof data.detail === 'string') return data.detail;
-      if (Array.isArray(data.detail)) {
-        const first = data.detail[0];
-        if (first?.msg) return first.msg;
-      }
-    }
-    if (error.response?.status === 401) return 'Please sign in to continue.';
-    if (error.response?.status === 404) return 'The requested item was not found.';
-    if (error.response?.status === 422) return 'Please check your input and try again.';
-    if (error.message) return error.message;
+    const status = error.response?.status
+    if (!status) return messages.network
+    if (status in messages) return messages[status as 400 | 401 | 403 | 404 | 409 | 422 | 429]
   }
-  if (error instanceof Error) return error.message;
-  return 'Something went wrong. Please try again.';
+  return messages.system
 }
 
 export class ApiClient {

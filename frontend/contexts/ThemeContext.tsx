@@ -21,8 +21,10 @@ function getSystemTheme(): 'light' | 'dark' {
 
 function getStoredTheme(): Theme {
   if (typeof window === 'undefined') return 'system'
-  const stored = localStorage.getItem(STORAGE_KEY)
-  if (stored === 'light' || stored === 'dark' || stored === 'system') return stored
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY)
+    if (stored === 'light' || stored === 'dark' || stored === 'system') return stored
+  } catch {}
   return 'system'
 }
 
@@ -42,7 +44,7 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
 
   const setTheme = useCallback((t: Theme) => {
     setThemeState(t)
-    localStorage.setItem(STORAGE_KEY, t)
+    try { localStorage.setItem(STORAGE_KEY, t) } catch {}
   }, [])
 
   useEffect(() => {
@@ -61,7 +63,12 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
   useEffect(() => {
     if (theme !== 'system') return
     const mq = window.matchMedia('(prefers-color-scheme: dark)')
-    const handler = () => setResolved(mq.matches ? 'dark' : 'light')
+    const handler = () => {
+      const next = mq.matches ? 'dark' : 'light'
+      setResolved(next)
+      document.documentElement.classList.remove('light', 'dark')
+      document.documentElement.classList.add(next)
+    }
     mq.addEventListener('change', handler)
     return () => mq.removeEventListener('change', handler)
   }, [theme])

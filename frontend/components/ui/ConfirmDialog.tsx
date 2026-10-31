@@ -1,7 +1,8 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useId, useRef } from 'react'
 import { fa } from '@/lib/fa'
+import { Button } from './button'
 
 interface ConfirmDialogProps {
   open: boolean
@@ -14,74 +15,36 @@ interface ConfirmDialogProps {
   onCancel: () => void
 }
 
-export function ConfirmDialog({
-  open,
-  title,
-  message,
-  confirmLabel = fa.common.delete,
-  cancelLabel = fa.common.cancel,
-  variant = 'danger',
-  onConfirm,
-  onCancel,
-}: ConfirmDialogProps) {
+export function ConfirmDialog({ open, title, message, confirmLabel = fa.common.delete, cancelLabel = fa.common.cancel, variant = 'danger', onConfirm, onCancel }: ConfirmDialogProps) {
+  const dialogRef = useRef<HTMLDialogElement>(null)
+  const cancelRef = useRef<HTMLButtonElement>(null)
+  const id = useId()
+
   useEffect(() => {
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onCancel()
-    }
-    if (open) {
-      document.addEventListener('keydown', handleEscape)
-      document.body.style.overflow = 'hidden'
-    }
+    const dialog = dialogRef.current
+    if (!open || !dialog) return
+    const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null
+    const overflow = document.body.style.overflow
+    dialog.showModal()
+    cancelRef.current?.focus()
+    document.body.style.overflow = 'hidden'
     return () => {
-      document.removeEventListener('keydown', handleEscape)
-      document.body.style.overflow = ''
+      dialog.close()
+      document.body.style.overflow = overflow
+      if (previousFocus?.isConnected) previousFocus.focus()
     }
-  }, [open, onCancel])
-
-  if (!open) return null
-
-  const confirmClass =
-    variant === 'danger'
-      ? 'bg-red-600 hover:bg-red-700 text-white'
-      : 'bg-primary-600 hover:bg-primary-700 text-white'
+  }, [open])
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div
-        className="absolute inset-0 bg-black/50"
-        aria-hidden
-        onClick={onCancel}
-      />
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="confirm-dialog-title"
-        aria-describedby="confirm-dialog-desc"
-        className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-soft-lg max-w-md w-full p-6 border border-gray-200/80 dark:border-gray-700/80"
-      >
-        <h2 id="confirm-dialog-title" className="text-lg font-semibold text-gray-900 dark:text-white">
-          {title}
-        </h2>
-        <p id="confirm-dialog-desc" className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-          {message}
-        </p>
-        <div className="mt-6 flex gap-3 justify-end">
-          <button
-            type="button"
-            onClick={onCancel}
-            className="px-4 py-2.5 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 text-sm font-medium"
-          >
-            {cancelLabel}
-          </button>
-          <button
-            type="button"
-            onClick={onConfirm}
-            className={`px-4 py-2.5 rounded-xl text-sm font-medium ${confirmClass}`}
-          >
-            {confirmLabel}
-          </button>
+    <dialog ref={dialogRef} aria-labelledby={`${id}-title`} aria-describedby={`${id}-description`} onCancel={event => { event.preventDefault(); onCancel() }} onClick={event => { if (event.target === event.currentTarget) onCancel() }} className="glass-surface glass-elevated m-auto w-[calc(100%_-_2rem)] max-w-md p-0">
+      <div className="p-6">
+        <h2 id={`${id}-title`} className="text-lg font-semibold">{title}</h2>
+        <p id={`${id}-description`} className="mt-2 text-sm text-muted-foreground">{message}</p>
+        <div className="mt-6 flex flex-wrap justify-end gap-3">
+          <Button ref={cancelRef} variant="outline" onClick={onCancel}>{cancelLabel}</Button>
+          <Button variant={variant === 'danger' ? 'destructive' : 'primary'} onClick={onConfirm}>{confirmLabel}</Button>
         </div>
       </div>
-    </div>
+    </dialog>
   )
 }

@@ -29,7 +29,7 @@ export default function RootLayout({
         <link href="https://fonts.cdnfonts.com/css/dana" rel="stylesheet" />
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){var t=localStorage.getItem('pishbin-theme');var r=t==='dark'||(t!=='light'&&window.matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.classList.add(r?'dark':'light');})();`,
+            __html: `(function(){var t;try{t=localStorage.getItem('pishbin-theme')}catch(e){};var r=t==='dark'||(t!=='light'&&window.matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.classList.add(r?'dark':'light');})();`,
           }}
         />
       </head>

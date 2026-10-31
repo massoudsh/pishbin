@@ -1,11 +1,12 @@
 import { forwardRef, type HTMLAttributes } from 'react'
 import { cn } from '@/lib/utils'
+import { GlassSurface } from './glass-surface'
 
 export const Card = forwardRef<HTMLDivElement, HTMLAttributes<HTMLDivElement>>(
   ({ className, ...props }, ref) => (
-    <div
+    <GlassSurface
       ref={ref}
-      className={cn('rounded-2xl border border-border/80 bg-surface text-foreground shadow-sm', className)}
+      className={cn('text-foreground', className)}
       {...props}
     />
   )

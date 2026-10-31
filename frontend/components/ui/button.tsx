@@ -7,6 +7,7 @@ export type ButtonSize = 'sm' | 'md' | 'lg' | 'icon'
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: ButtonVariant
   size?: ButtonSize
+  loading?: boolean
 }
 
 const variantStyles: Record<ButtonVariant, string> = {
@@ -25,20 +26,25 @@ const sizeStyles: Record<ButtonSize, string> = {
 }
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ variant = 'primary', size = 'md', className, type = 'button', ...props }, ref) => (
+  ({ variant = 'primary', size = 'md', className, type = 'button', loading = false, disabled, children, ...props }, ref) => (
     <button
       ref={ref}
       type={type}
+      disabled={disabled || loading}
+      aria-busy={loading || undefined}
       className={cn(
         'inline-flex items-center justify-center gap-2 rounded-xl font-medium transition-colors',
-        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background',
+        'focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background',
         'disabled:pointer-events-none disabled:opacity-50',
         variantStyles[variant],
         sizeStyles[size],
         className
       )}
       {...props}
-    />
+    >
+      {loading && <span aria-hidden="true">…</span>}
+      {children}
+    </button>
   )
 )
 

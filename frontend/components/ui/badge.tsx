@@ -10,8 +10,8 @@ export interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {
 const variantStyles: Record<BadgeVariant, string> = {
   neutral: 'bg-muted text-muted-foreground',
   accent: 'bg-accent/10 text-accent dark:bg-accent/20',
-  success: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-200',
-  warning: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-200',
+  success: 'status-success',
+  warning: 'status-warning',
   destructive: 'bg-destructive/10 text-destructive dark:bg-destructive/20',
   outline: 'border border-border text-foreground',
 }

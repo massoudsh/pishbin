@@ -4,6 +4,8 @@ import { useTheme } from '@/contexts/ThemeContext'
 
 export function ThemeToggle() {
   const { theme, setTheme, resolved } = useTheme()
+  const labels = { light: 'روشن', dark: 'تیره', system: 'هماهنگ با دستگاه' }
+  const next = theme === 'light' ? 'dark' : theme === 'dark' ? 'system' : 'light'
 
   const cycle = () => {
     if (theme === 'light') setTheme('dark')
@@ -15,9 +17,9 @@ export function ThemeToggle() {
     <button
       type="button"
       onClick={cycle}
-      className="p-2 rounded-md text-gray-500 hover:text-gray-700 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-primary-500"
-      aria-label={`Theme: ${theme}. Toggle to ${theme === 'light' ? 'dark' : theme === 'dark' ? 'system' : 'light'}.`}
-      title={`Theme: ${theme} (${resolved})`}
+      className="rounded-xl p-2 text-muted-foreground hover:bg-muted hover:text-foreground"
+      aria-label={`پوسته فعلی: ${labels[theme]}؛ تغییر به ${labels[next]}`}
+      title={`پوسته: ${labels[theme]}`}
     >
       {resolved === 'dark' ? (
         <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20" aria-hidden>
