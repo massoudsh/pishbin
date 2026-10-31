@@ -4,7 +4,8 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import Navbar from '@/components/layout/Navbar'
 import { apiClient, getApiErrorMessage } from '@/lib/api'
-import { formatCurrency } from '@/lib/utils'
+import { formatCurrency, formatDate } from '@/lib/utils'
+import { DataTable } from '@/components/ui/data-table'
 import { fa } from '@/lib/fa'
 import SettlementForm from '@/components/forms/SettlementForm'
 import { Button } from '@/components/ui/button'
@@ -92,7 +93,7 @@ export default function ChecksPage() {
     const accountId = parseInt(form.account_id, 10)
     const amount = parseFloat(form.amount)
     if (!accountId || !amount || amount <= 0 || !form.counterparty_name.trim()) {
-      setError('Select an account, enter the counterparty name and a positive amount.')
+      setError('حساب را انتخاب کنید؛ نام طرف حساب و مبلغ مثبت را وارد کنید.')
       return
     }
     setSaving(true)
@@ -141,7 +142,7 @@ export default function ChecksPage() {
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
-      <main className="max-w-4xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+      <main id="main-content" className="max-w-4xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
         <div className="mb-8 flex flex-wrap items-center gap-2">
           <h1 className="text-2xl font-bold text-foreground">{fa.checks.title}</h1>
         </div>
@@ -295,47 +296,18 @@ export default function ChecksPage() {
           ) : list.length === 0 ? (
             <div className="p-6 text-muted-foreground">{fa.checks.noChecksYet} {fa.checks.addOneAbove}</div>
           ) : (
-            <ul className="divide-y divide-border">
-              {list.map((c) => (
-                <li key={c.id} id={`check-${c.id}`} className="scroll-mt-24 p-4 flex flex-wrap items-center justify-between gap-2">
-                  <div>
-                    <p className="font-medium text-foreground">
-                      {c.counterparty_name} · {formatCurrency(c.amount)} ({c.direction === 'received' ? fa.checks.received : fa.checks.issued})
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      {accountName(c.account_id)} · {fa.checks.dueDate}: {c.due_date} · {STATUS_LABEL[c.status]}
-                      {c.bank_name ? ` · ${c.bank_name}` : ''}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    {c.status === 'pending' && (
-                      <>
-                        <Button size="sm" variant="ghost" onClick={() => setSettlingId(c.id)} className="text-emerald-600 dark:text-emerald-400">
-                          {fa.checks.markCleared}
-                        </Button>
-                        <Button size="sm" variant="ghost" onClick={() => handleStatusChange(c.id, 'bounced')} className="text-amber-600 dark:text-amber-400">
-                          {fa.checks.markBounced}
-                        </Button>
-                        <Button size="sm" variant="ghost" onClick={() => handleStatusChange(c.id, 'voided')} className="text-muted-foreground">
-                          {fa.checks.markVoided}
-                        </Button>
-                        <Button size="sm" variant="ghost" onClick={() => handleDelete(c.id)} className="text-red-600 dark:text-red-400">
-                          {fa.checks.remove}
-                        </Button>
-                      </>
-                    )}
-                    {c.status === 'bounced' && <Button size="sm" variant="ghost" onClick={() => setSettlingId(c.id)}>{fa.checks.markCleared}</Button>}
-                  </div>
-                  {c.settlement_transaction_id && <Link href="/transactions" className="text-sm text-accent">تراکنش تسویه #{c.settlement_transaction_id}</Link>}
-                  {c.status === 'cleared' && !c.settlement_transaction_id && <Badge variant="warning">تسویه قدیمی بدون پیوند دفتر؛ نیازمند تطبیق</Badge>}
-                  {settlingId === c.id && <SettlementForm key={c.id} amount={c.amount} direction={c.direction === 'received' ? 'income' : 'expense'} accountName={accountName(c.account_id)} onCancel={() => setSettlingId(null)} onSubmit={async data => {
-                    await apiClient.settleCheck(c.id, { settlement_date: data.settlement_date, transaction_id: data.transaction_id })
-                    setSettlingId(null)
-                    await load()
-                  }} />}
-                </li>
-              ))}
-            </ul>
+            <DataTable rows={list} caption="چک‌ها" rowId={c => `check-${c.id}`} searchText={c => `${c.id} ${c.counterparty_name} ${accountName(c.account_id)} ${STATUS_LABEL[c.status]} ${c.due_date} ${c.direction === 'received' ? fa.checks.received : fa.checks.issued}`} columns={[
+              { key: 'party', label: 'طرف حساب', value: c => c.counterparty_name, render: c => <><bdi>{c.counterparty_name}</bdi><span className="block">#{c.id} · {accountName(c.account_id)}</span></> },
+              { key: 'amount', label: 'مبلغ', value: c => Number(c.amount), render: c => formatCurrency(c.amount) },
+              { key: 'direction', label: 'نوع', value: c => c.direction, render: c => c.direction === 'received' ? fa.checks.received : fa.checks.issued },
+              { key: 'due', label: 'سررسید', value: c => c.due_date, render: c => formatDate(`${c.due_date}T12:00:00Z`) },
+              { key: 'status', label: 'وضعیت', value: c => STATUS_LABEL[c.status], render: c => <><Badge variant={c.status === 'cleared' ? 'success' : c.status === 'bounced' ? 'warning' : 'neutral'}>{STATUS_LABEL[c.status]}</Badge>{c.bank_name && <p><bdi>{c.bank_name}</bdi></p>}{c.settlement_transaction_id && <Link className="block text-accent" href="/transactions">تراکنش تسویه #{c.settlement_transaction_id}</Link>}{c.status === 'cleared' && !c.settlement_transaction_id && <p>تسویه قدیمی بدون پیوند دفتر؛ نیازمند تطبیق</p>}</> },
+              { key: 'actions', label: 'عملیات', render: c => <div className="flex flex-wrap gap-2">{['pending', 'bounced'].includes(c.status) && <Button size="sm" variant="outline" onClick={() => setSettlingId(c.id)}>{fa.checks.markCleared}</Button>}{c.status === 'pending' && <><Button size="sm" variant="ghost" onClick={() => { if (confirm('این چک برگشتی ثبت شود؟')) void handleStatusChange(c.id, 'bounced') }}>{fa.checks.markBounced}</Button><Button size="sm" variant="ghost" onClick={() => { if (confirm('این چک باطل شود؟ این کار تسویه نیست.')) void handleStatusChange(c.id, 'voided') }}>{fa.checks.markVoided}</Button><Button size="sm" variant="destructive" onClick={() => handleDelete(c.id)}>{fa.checks.remove}</Button></>}</div> },
+            ]} detail={c => settlingId === c.id ? <SettlementForm key={c.id} amount={c.amount} direction={c.direction === 'received' ? 'income' : 'expense'} accountName={accountName(c.account_id)} onCancel={() => setSettlingId(null)} onSubmit={async data => {
+              await apiClient.settleCheck(c.id, { settlement_date: data.settlement_date, transaction_id: data.transaction_id })
+              setSettlingId(null)
+              await load()
+            }} /> : null} />
           )}
           </CardContent>
         </Card>

@@ -38,6 +38,31 @@
 - Zod — اعتبارسنجی schema
 - Recharts — نمایش داده
 
+## UI backlog delivery — October 2026
+
+- Shared token-based glass surfaces, cards, loading buttons, native confirmation dialogs, reduced-motion/transparency fallbacks, and Persian theme labels reuse the existing component APIs.
+- Responsive RTL navigation includes section search, active-route semantics, environment labeling, offline feedback, and on-demand invoice/check/budget follow-ups. Alerts describe registered documents, not sent reminders or realtime notifications. Data remains scoped to the signed-in user across businesses.
+- Invoice/check tables provide search, sortable columns, 25-row client-side pagination, sticky headers, document deep links, localized dates, settlement context, and confirmation before cancellation/bounce/void actions. Pagination bounds rendered rows, not API response size. No new bulk writes or exports were added.
+- The decision desk shows baseline/scenario cash-position charts with distinct line styles and equivalent daily tables. Calculations, source-exclusive receipt assumptions, settlement APIs, and authorization remain unchanged.
+- Shared Persian/English errors distinguish permission, validation, conflict, throttling, network, and system failures without displaying raw server exceptions. System-theme changes update the document; unavailable preference storage no longer breaks theme initialization.
+
+### Validation
+
+```bash
+npm --prefix frontend ci --ignore-scripts --no-audit --no-fund
+npm --prefix frontend run prisma:generate
+npm --prefix frontend run test:regression
+npm --prefix frontend run typecheck
+```
+
+Tests cover calculation/auth/settlement regressions, component markup, bounded tables, sorting/search, deep-linked pages, safe errors, and system-theme changes. They do not replace browser interaction tests.
+
+### Remaining backlog and acceptance gates
+
+This is not completion of all 18 backlog sections. The existing decision desk supplies financial KPIs, collections, observed customer behavior, and simulations; a replacement legacy dashboard, transaction-table migration, advanced/saved filters, complete field-level form validation, and a full primary-screen RTL/accessibility audit remain. Business switching, invoice attachments/line items/partial payments, document matching, persisted scenarios, scheduled reminders/preferences, and richer audit/role-based redaction need supported data contracts and product rules rather than mock financial workflows. No artificial risk scores or confidence values were introduced.
+
+Browser screenshots, keyboard/screen-reader interaction, rendered light/dark contrast, responsive visual regression, Core Web Vitals, production build, and live PostgreSQL checks were not run in this environment. WCAG AA and performance acceptance are therefore not certified. Existing CI was not changed.
+
 ## شروع کار
 
 ### پیش‌نیازها

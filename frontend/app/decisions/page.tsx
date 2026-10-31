@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Stat } from '@/components/ui/stat'
+import { CashFlowChart } from '@/components/ui/cash-flow-chart'
 import { apiClient } from '@/lib/api'
 import { formatCurrency, formatDate, formatNumber } from '@/lib/utils'
 import { cashAccounts, cashTimeline, collectionQueue, currencyBlocked, customerExposure, DecisionDataSchema, emptyScenario, readiness, shiftDate, tehranToday, type DecisionData, type Scenario } from '@/lib/decision-center'
@@ -158,8 +159,8 @@ export default function DecisionsPage() {
                 {active === 'calendar' && !blocked && (
                   <Card>
                     <CardHeader className="gap-3"><CardTitle>برنامه روزانه پرداخت</CardTitle><CardDescription>موجودی پایان روز پس از کسر چک‌های صادره؛ فاکتور و چک دریافتی فقط در سناریوی انتخابی وارد می‌شوند.</CardDescription><div><Button variant="outline" size="sm" onClick={exportCalendar}>دریافت برنامه CSV</Button></div></CardHeader>
-                    <CardContent><div className="max-h-[460px] overflow-auto rounded-xl border border-border">
-                      <table className="w-full min-w-[460px] text-start text-sm"><caption className="sr-only">برنامه روزانه تعهدات نقدی به تومان</caption><thead className="bg-muted"><tr>{['روز', 'تعهد پرداخت', 'مانده پایان روز', 'سند'].map(label => <th key={label} scope="col" className="p-3 text-start">{label}</th>)}</tr></thead><tbody>
+                    <CardContent><CashFlowChart baseline={baseline} /><div className="mt-4 max-h-[460px] overflow-auto rounded-xl border border-border" role="region" aria-label="جدول برنامه روزانه" tabIndex={0}>
+                      <table className="financial-table min-w-[460px] text-sm"><caption className="sr-only">برنامه روزانه تعهدات نقدی به تومان</caption><thead className="bg-muted"><tr>{['روز', 'تعهد پرداخت', 'مانده پایان روز', 'سند'].map(label => <th key={label} scope="col" className="p-3 text-start">{label}</th>)}</tr></thead><tbody>
                         {baseline.map(day => <tr key={day.date} className={`border-t border-border ${day.balance < 0 ? 'bg-red-50 dark:bg-red-950/20' : ''}`}>
                           <td className="p-3 whitespace-nowrap">{formatDate(`${day.date}T12:00:00Z`)}</td><td className="p-3">{formatCurrency(day.outflow)}</td><td className="p-3 font-semibold">{formatCurrency(day.balance)}{day.balance < 0 && <span className="block text-xs text-destructive">کسری</span>}</td><td className="p-3">{day.checkIds.map(id => <Link className="me-2 text-accent underline" key={id} href={`/checks#check-${id}`}>چک {formatNumber(id)}</Link>)}</td>
                         </tr>)}
@@ -190,6 +191,8 @@ export default function DecisionsPage() {
                       <Stat label="کمترین مانده سناریو" value={formatCurrency(Math.min(currentBalance, ...simulated.map(d => d.balance)))} />
                       <Stat label="اولین کسری سناریو" value={scenarioShortage ? formatDate(`${scenarioShortage.date}T12:00:00Z`) : 'دیده نشد'} hint="فقط در محدوده فرض‌های واردشده" />
                     </div>
+                    <CashFlowChart baseline={baseline} scenario={simulated} />
+                    <details className="rounded-xl border border-border p-4"><summary className="cursor-pointer">مقایسه روزانه و تعهدات تحت تأثیر</summary><div className="max-h-96 overflow-auto" role="region" aria-label="مقایسه برنامه پایه و سناریو" tabIndex={0}><table className="financial-table text-sm"><caption className="sr-only">مقایسه روزانه به تومان</caption><thead><tr>{['روز', 'مانده پایه', 'مانده سناریو', 'تعهدات'].map(label => <th key={label} scope="col">{label}</th>)}</tr></thead><tbody>{simulated.map((day, index) => <tr key={day.date}><td>{formatDate(`${day.date}T12:00:00Z`)}</td><td>{formatCurrency(baseline[index].balance)}</td><td>{formatCurrency(day.balance)}{day.balance < 0 && <span className="block text-destructive">کسری</span>}</td><td>{day.checkIds.map(id => <Link key={id} className="me-2 text-accent underline" href={`/checks#check-${id}`}>چک {formatNumber(id)}</Link>)}</td></tr>)}</tbody></table></div></details>
                     <Button variant="outline" onClick={() => setScenario(emptyScenario)}>بازگشت به برنامه پایه</Button>
                   </CardContent></Card>
                 )}

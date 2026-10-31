@@ -4,7 +4,9 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import Navbar from '@/components/layout/Navbar'
 import { apiClient, getApiErrorMessage } from '@/lib/api'
-import { formatCurrency } from '@/lib/utils'
+import { formatCurrency, formatDate } from '@/lib/utils'
+import { DataTable } from '@/components/ui/data-table'
+import { daysBetween, tehranToday } from '@/lib/decision-center'
 import { fa } from '@/lib/fa'
 import SettlementForm from '@/components/forms/SettlementForm'
 import { type Account } from '@/lib/schemas/account'
@@ -34,13 +36,6 @@ const STATUS_LABEL: Record<InvoiceRow['status'], string> = {
   paid: fa.invoices.statusPaid,
   overdue: fa.invoices.statusOverdue,
   cancelled: fa.invoices.statusCancelled,
-}
-
-const STATUS_COLOR: Record<InvoiceRow['status'], string> = {
-  issued: 'text-gray-600 dark:text-gray-400',
-  paid: 'text-emerald-600 dark:text-emerald-400',
-  overdue: 'text-red-600 dark:text-red-400',
-  cancelled: 'text-gray-400 dark:text-gray-500',
 }
 
 export default function InvoicesPage() {
@@ -87,7 +82,7 @@ export default function InvoicesPage() {
     const customerId = parseInt(form.customer_id, 10)
     const amount = parseFloat(form.amount)
     if (!customerId || !amount || amount <= 0) {
-      setError('Select a customer and enter a positive amount.')
+      setError('مشتری را انتخاب کنید و مبلغ مثبت وارد کنید.')
       return
     }
     setSaving(true)
@@ -132,7 +127,7 @@ export default function InvoicesPage() {
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
-      <main className="max-w-4xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+      <main id="main-content" className="max-w-4xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
         <div className="mb-8 flex flex-wrap items-center gap-2">
           <h1 className="text-2xl font-bold text-foreground">{fa.invoices.title}</h1>
         </div>
@@ -229,43 +224,18 @@ export default function InvoicesPage() {
           ) : list.length === 0 ? (
             <div className="p-6 text-muted-foreground">{fa.invoices.noInvoicesYet} {fa.invoices.addOneAbove}</div>
           ) : (
-            <ul className="divide-y divide-border">
-              {list.map((inv) => (
-                <li key={inv.id} id={`invoice-${inv.id}`} className="scroll-mt-24 p-4 flex flex-wrap items-center justify-between gap-2">
-                  <div>
-                    <p className="font-medium text-foreground">
-                      {customerName(inv.customer_id)} · {formatCurrency(inv.amount)}
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      {fa.invoices.dueDate}: {inv.due_date} ·{' '}
-                      <span className={STATUS_COLOR[inv.status]}>{STATUS_LABEL[inv.status]}</span>
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    {(inv.status === 'issued' || inv.status === 'overdue') && (
-                      <>
-                        <Button size="sm" variant="ghost" onClick={() => setSettlingId(inv.id)} className="text-emerald-600 dark:text-emerald-400">
-                          {fa.invoices.markPaid}
-                        </Button>
-                        <Button size="sm" variant="ghost" onClick={() => handleStatusChange(inv.id, 'cancelled')} className="text-muted-foreground">
-                          {fa.invoices.markCancelled}
-                        </Button>
-                        <Button size="sm" variant="ghost" onClick={() => handleDelete(inv.id)} className="text-red-600 dark:text-red-400">
-                          {fa.invoices.remove}
-                        </Button>
-                      </>
-                    )}
-                  </div>
-                  {inv.settlement_transaction_id && <Link href="/transactions" className="text-sm text-accent">تراکنش تسویه #{inv.settlement_transaction_id}</Link>}
-                  {inv.status === 'paid' && !inv.settlement_transaction_id && <Badge variant="warning">تسویه قدیمی بدون پیوند دفتر؛ نیازمند تطبیق</Badge>}
-                  {settlingId === inv.id && <SettlementForm key={inv.id} amount={inv.amount} direction="income" accounts={accounts} onCancel={() => setSettlingId(null)} onSubmit={async data => {
-                    await apiClient.settleInvoice(inv.id, { ...data, account_id: data.account_id! })
-                    setSettlingId(null)
-                    await load()
-                  }} />}
-                </li>
-              ))}
-            </ul>
+            <DataTable rows={list} caption="فاکتورها" rowId={inv => `invoice-${inv.id}`} searchText={inv => `${inv.id} ${customerName(inv.customer_id)} ${STATUS_LABEL[inv.status]} ${inv.due_date}`} columns={[
+              { key: 'customer', label: 'مشتری / فاکتور', value: inv => customerName(inv.customer_id), render: inv => <><Link className="text-accent underline" href={`/customers#customer-${inv.customer_id}`}><bdi>{customerName(inv.customer_id)}</bdi></Link><span className="block">#{inv.id}</span></> },
+              { key: 'amount', label: 'مبلغ', value: inv => Number(inv.amount), render: inv => formatCurrency(inv.amount) },
+              { key: 'issued', label: 'تاریخ صدور', value: inv => inv.issue_date, render: inv => formatDate(`${inv.issue_date}T12:00:00Z`) },
+              { key: 'due', label: 'سررسید', value: inv => inv.due_date, render: inv => <>{formatDate(`${inv.due_date}T12:00:00Z`)}{['issued', 'overdue'].includes(inv.status) && inv.due_date < tehranToday() && <span className="block text-destructive">{daysBetween(inv.due_date, tehranToday()).toLocaleString('fa-IR')} روز تأخیر</span>}</> },
+              { key: 'status', label: 'وضعیت', value: inv => STATUS_LABEL[inv.status], render: inv => <><Badge variant={inv.status === 'paid' ? 'success' : inv.status === 'overdue' ? 'warning' : 'neutral'}>{STATUS_LABEL[inv.status]}</Badge>{inv.settlement_transaction_id && <Link href="/transactions" className="block text-accent">تراکنش تسویه #{inv.settlement_transaction_id}</Link>}{inv.status === 'paid' && !inv.settlement_transaction_id && <p>تسویه قدیمی بدون پیوند دفتر؛ نیازمند تطبیق</p>}</> },
+              { key: 'actions', label: 'عملیات', render: inv => (inv.status === 'issued' || inv.status === 'overdue') && <div className="flex flex-wrap gap-2"><Button size="sm" variant="outline" onClick={() => setSettlingId(inv.id)}>{fa.invoices.markPaid}</Button><Button size="sm" variant="ghost" onClick={() => { if (confirm('این فاکتور لغو شود؟ این کار دریافت وجه نیست.')) void handleStatusChange(inv.id, 'cancelled') }}>{fa.invoices.markCancelled}</Button><Button size="sm" variant="destructive" onClick={() => handleDelete(inv.id)}>{fa.invoices.remove}</Button></div> },
+            ]} detail={inv => settlingId === inv.id ? <SettlementForm key={inv.id} amount={inv.amount} direction="income" accounts={accounts} onCancel={() => setSettlingId(null)} onSubmit={async data => {
+              await apiClient.settleInvoice(inv.id, { ...data, account_id: data.account_id! })
+              setSettlingId(null)
+              await load()
+            }} /> : null} />
           )}
           </CardContent>
         </Card>
