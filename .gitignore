@@ -61,9 +61,6 @@ Thumbs.db
 *.sqlite
 *.sqlite3
 
-# Docker
-.dockerignore
-
 # Frontend (Next.js) - keep source under frontend/lib/ tracked (the Python ignore list above is broad)
 !frontend/lib/
 !frontend/lib/**

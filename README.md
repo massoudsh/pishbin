@@ -142,16 +142,28 @@ npm run dev
 
 ### راه‌اندازی با Docker
 
-۱. اجرای همه سرویس‌ها:
+کل پروژه (Postgres + بک‌اند + فرانت‌اند) با یک فرمان بالا می‌آید:
+
 ```bash
 docker compose up -d --build
 ```
 
-۲. دسترسی به برنامه:
-   - Backend API: `http://localhost:8000`
-   - Frontend: `http://localhost:3000` (جداگانه با `cd frontend && npm run dev` اجرا می‌شود؛ Docker Compose فقط backend و Postgres را اجرا می‌کند)
+- Backend API: `http://localhost:8000` (مستندات: `/docs`)
+- Frontend: `http://localhost:3000`
+- Postgres: پورت میزبان `5433`
 
-برای **استقرار در محیط production** (متغیرهای محیطی، CORS، مایگریشن، health check، override پروداکشن Docker) به **[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)** مراجعه کنید.
+فایل `docker-compose.override.yml` به‌صورت خودکار در حالت توسعه لود می‌شود (پورت‌ها، mount زنده کد بک‌اند و `--reload`). برای production:
+
+```bash
+cp .env.example .env   # SECRET_KEY، POSTGRES_PASSWORD، CORS_ORIGINS، NEXT_PUBLIC_API_URL
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+```
+
+در این حالت فقط nginx روی پورت ۸۰ منتشر می‌شود، مایگریشن‌های Alembic هنگام بالا آمدن بک‌اند اجرا می‌شوند و هر سه سرویس healthcheck دارند.
+
+> `NEXT_PUBLIC_API_URL` و `NEXT_PUBLIC_APP_ENV` در زمان **build** داخل باندل فرانت‌اند قرار می‌گیرند؛ بعد از تغییرشان ایمیج فرانت‌اند را دوباره build کنید.
+
+جزئیات کامل (متغیرها، مایگریشن، Prisma اختیاری، health check) در **[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)** آمده است.
 
 ## ساختار پروژه
 
@@ -172,7 +184,11 @@ pishbin/
 │   ├── components/        # کامپوننت‌های React
 │   └── lib/               # ابزارهای کمکی
 ├── docs/                  # مستندات
-└── docker-compose.yml
+├── docker/postgres/init/  # ساخت دیتابیس اختیاری Prisma
+├── nginx/                 # reverse proxy پروداکشن
+├── docker-compose.yml
+├── docker-compose.override.yml   # توسعه
+└── docker-compose.prod.yml       # production
 ```
 
 ## مسیرهای API

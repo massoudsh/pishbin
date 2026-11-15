@@ -1,0 +1,18 @@
+# Development overrides, loaded automatically by `docker compose up`.
+# Not loaded when explicit -f files are passed (see docker-compose.prod.yml).
+
+services:
+  postgres:
+    ports:
+      - "5433:5432"
+
+  backend:
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+  frontend:
+    ports:
+      - "3000:3000"

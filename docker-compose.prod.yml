@@ -1,12 +1,19 @@
 # Production override: no host mounts, no reload, nginx reverse proxy, secrets from env file.
 # Usage: docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
 # Required env vars: SECRET_KEY, POSTGRES_PASSWORD, CORS_ORIGINS, NEXT_PUBLIC_API_URL
+# NEXT_PUBLIC_API_URL is a build arg: rebuild the frontend after changing it.
+
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
 
 services:
   postgres:
     environment:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
-    restart: unless-stopped
+    logging: *default-logging
 
   backend:
     environment:
@@ -14,18 +21,24 @@ services:
       SECRET_KEY: ${SECRET_KEY:?SECRET_KEY is required}
       DEBUG: "false"
       AUTO_CREATE_DB: "false"
-      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
-      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
-    volumes: []
-    ports: []
+      RUN_MIGRATIONS: "true"
+      CORS_ORIGINS: ${CORS_ORIGINS:?CORS_ORIGINS is required}
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost}
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 2
-    restart: unless-stopped
+    logging: *default-logging
 
   frontend:
+    build:
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:?NEXT_PUBLIC_API_URL is required}
+        NEXT_PUBLIC_APP_ENV: ${NEXT_PUBLIC_APP_ENV:-production}
     environment:
-      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost/api/v1}
-    ports: []
-    restart: unless-stopped
+      PRISMA_DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@postgres:5432/pishbin_prisma?schema=public
+    logging: *default-logging
+
+  prisma-setup:
+    environment:
+      PRISMA_DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@postgres:5432/pishbin_prisma?schema=public
 
   nginx:
     image: nginx:alpine
@@ -34,6 +47,9 @@ services:
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
     depends_on:
-      - backend
-      - frontend
+      backend:
+        condition: service_healthy
+      frontend:
+        condition: service_healthy
     restart: unless-stopped
+    logging: *default-logging

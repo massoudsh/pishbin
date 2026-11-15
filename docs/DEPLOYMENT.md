@@ -41,16 +41,58 @@ alembic upgrade head
 
 ## Docker
 
-- **Development:** `docker compose up -d --build` (uses `docker-compose.yml`: Postgres + backend with reload).
-- **Production-style:** use the prod override so the backend runs without host mounts and without `--reload`:
+The stack is `postgres` + `backend` (FastAPI) + `frontend` (Next.js standalone), with nginx added in production.
+
+- **Development:** `docker compose up -d --build`
+  `docker-compose.override.yml` is loaded automatically and adds host ports (`5433`, `8000`, `3000`), the `./backend:/app` source mount, and `--reload`.
+- **Production:** explicit `-f` files disable the dev override:
 
   ```bash
-  export SECRET_KEY="your-production-secret"
-  export CORS_ORIGINS="https://yourapp.com"
+  cp .env.example .env   # fill in SECRET_KEY, POSTGRES_PASSWORD, CORS_ORIGINS, NEXT_PUBLIC_API_URL
   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
   ```
 
-Run migrations against the production DB before or after starting the backend (e.g. in CI or a one-off job).
+  This publishes only nginx on port 80, runs the backend with 2 workers, and applies migrations automatically.
+
+### Build-time frontend variables
+
+`NEXT_PUBLIC_API_URL` and `NEXT_PUBLIC_APP_ENV` are inlined into the browser bundle by Next.js. They are passed as Docker **build args**, not runtime environment variables — rebuild the frontend image after changing them:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.prod.yml build frontend
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+```
+
+### Migrations in containers
+
+The backend entrypoint runs `alembic upgrade head` when `RUN_MIGRATIONS=true` (set in the production override) and then starts uvicorn. Development uses `AUTO_CREATE_DB=true` instead. To run migrations manually:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.prod.yml run --rm backend alembic upgrade head
+```
+
+### Optional Prisma demo database
+
+The frontend contains a demo route (`/api/prisma-mock`) backed by Prisma. Postgres creates a separate `pishbin_prisma` database on first initialization so its tables never collide with the FastAPI schema. Create the demo tables once with:
+
+```bash
+docker compose --profile prisma run --rm prisma-setup
+```
+
+The main application does not depend on this database.
+
+### Health checks
+
+- `postgres`: `pg_isready`
+- `backend`: `GET /health`
+- `frontend`: HTTP request to `/` from inside the container
+
+nginx starts only after the backend and frontend report healthy.
+
+### Image hygiene
+
+`backend/.dockerignore` and `frontend/.dockerignore` keep virtualenvs, `node_modules`, `.next`, tests, and local env files out of the build context. Both images run as non-root users.
+
 
 ## Health check
 
@@ -88,7 +130,8 @@ Set `CORS_ORIGINS` to the exact origin(s) of your frontend (e.g. Vercel deployme
 ## Checklist
 
 - [ ] Strong `SECRET_KEY` set; `DEBUG=false`.
-- [ ] Production `DATABASE_URL`; migrations run (`alembic upgrade head`).
+- [ ] Production `DATABASE_URL`; migrations run (`alembic upgrade head`, automatic via `RUN_MIGRATIONS=true`).
 - [ ] `CORS_ORIGINS` set to frontend origin(s).
 - [ ] Health check configured (`/health`).
-- [ ] Frontend `NEXT_PUBLIC_API_URL` points to backend API.
+- [ ] Frontend `NEXT_PUBLIC_API_URL` points to backend API and the image was rebuilt after changing it.
+- [ ] `.env` is not committed; only `.env.example` is tracked.
