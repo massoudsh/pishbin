@@ -11,11 +11,13 @@ import { CashFlowChart } from '@/components/ui/cash-flow-chart'
 import { apiClient } from '@/lib/api'
 import { formatCurrency, formatDate, formatNumber } from '@/lib/utils'
 import { cashAccounts, cashTimeline, collectionQueue, currencyBlocked, customerExposure, DecisionDataSchema, emptyScenario, readiness, shiftDate, tehranToday, type DecisionData, type Scenario } from '@/lib/decision-center'
+import { collectionPriorities, followUpMessage, obligationCapacity, paymentReliability, receivablesAging, thirteenWeekView } from '@/lib/insights'
 
 const sections = [
   { id: 'calendar', label: 'تقویم نقدینگی', description: 'چه روزی به پول نیاز دارم؟' },
   { id: 'scenario', label: 'آزمایش تصمیم', description: 'این خرید چه اثری دارد؟' },
   { id: 'collections', label: 'صف وصول', description: 'امروز از چه کسی پیگیری کنم؟' },
+  { id: 'weeks', label: 'افق ۱۳ هفته', description: 'هفته‌های آینده چه شکلی است؟' },
   { id: 'customers', label: 'رفتار مشتریان', description: 'کدام رابطه نیاز به توجه دارد؟' },
   { id: 'readiness', label: 'کیفیت داده', description: 'چقدر می‌توانم به اعداد تکیه کنم؟' },
 ] as const
@@ -70,6 +72,11 @@ export default function DecisionsPage() {
   const scenarioShortage = simulated.find(day => day.balance < 0)
   const currentBalance = data ? cashAccounts(data).reduce((sum, a) => sum + a.balance, 0) : 0
   const overdueTotal = queue.filter(i => i.daysLate > 0).reduce((sum, i) => sum + i.amount, 0)
+  const capacity = data ? obligationCapacity(data, today) : null
+  const priorities = useMemo(() => data ? collectionPriorities(data, today) : [], [data, today])
+  const aging = useMemo(() => data ? receivablesAging(data, today) : [], [data, today])
+  const weeks = useMemo(() => data ? thirteenWeekView(data, today) : [], [data, today])
+  const priorityOf = (id: number) => priorities.find(p => p.invoiceId === id)
   const selected = sections.find(s => s.id === active)!
 
   function updateScenario(key: Exclude<keyof Scenario, 'receiptSource'>, value: string, max: number) {
@@ -125,7 +132,7 @@ export default function DecisionsPage() {
               <Stat label="مانده حساب‌های نقدی" value={blocked ? 'نیاز به بررسی' : formatCurrency(currentBalance)} hint="بدون وام، کارت اعتباری و سرمایه‌گذاری" />
               <Stat label="اولین کسری در برنامه پایه" value={blocked ? 'نامشخص' : firstShortage ? formatDate(`${firstShortage.date}T12:00:00Z`) : 'در این بازه دیده نشد'} hint="فقط تعهدات چک؛ نه تضمین کفایت نقدینگی" />
               <Stat label="مطالبات معوق" value={formatCurrency(overdueTotal)} hint="از فاکتورهای باز؛ به معنی پول در دسترس نیست" />
-              <Stat label="موارد نیازمند بررسی" value={formatNumber(checks.filter(c => !c.ok).length)} hint="شاخص کیفیت داده، نه امتیاز اعتباری" />
+              <Stat label="پوشش تعهدات با نقدینگی" value={capacity?.ratio === null ? 'نامشخص' : capacity ? `${formatNumber(Math.round(capacity.ratio! * 100))}٪` : '—'} hint={capacity ? `${formatCurrency(capacity.used)} تعهد در برابر ${formatCurrency(capacity.available)} نقدینگی؛ محاسبه ریاضی، نه اعتبارسنجی` : 'شاخص کیفیت داده، نه امتیاز اعتباری'} />
             </div>
 
             <div className="grid items-start gap-6 lg:grid-cols-[240px_minmax(0,1fr)]">
@@ -205,12 +212,15 @@ export default function DecisionsPage() {
                       </select>
                       <label htmlFor="customer-search" className="sr-only">جستجوی مشتری</label><input id="customer-search" type="search" placeholder="نام مشتری…" className="rounded-xl border border-border bg-surface p-3" value={query} onChange={e => setQuery(e.target.value)} />
                     </div>
-                    <p className="text-sm text-muted-foreground">اولویت: تأخیر بیشتر، سپس مبلغ بیشتر. این رتبه‌بندی امتیاز اعتباری نیست.</p>
+                    <Card><CardHeader><CardTitle>قدمت مطالبات</CardTitle><CardDescription>مبلغ و تعداد فاکتورهای باز در هر بازه تأخیر؛ فقط از اسناد ثبت‌شده.</CardDescription></CardHeader><CardContent>
+                      <ul className="grid gap-3 sm:grid-cols-5">{aging.map(row => <li key={row.key} className="rounded-xl border border-border p-3"><p className="text-xs text-muted-foreground">{row.label}</p><p className="mt-1 font-semibold">{formatCurrency(row.amount)}</p><p className="text-xs text-muted-foreground">{formatNumber(row.count)} فاکتور</p></li>)}</ul>
+                    </CardContent></Card>
+                    <p className="text-sm text-muted-foreground">اولویت بر اساس تأخیر، مبلغ، سابقه تأخیر و چک برگشتی محاسبه می‌شود و دلیل هر رتبه کنار آن نوشته شده است. این رتبه‌بندی امتیاز اعتباری نیست.</p>
                     <div className="space-y-3">
                       {queue.filter(i => (bucket === 'all' || i.bucket === bucket) && (i.customer?.name ?? '').includes(query.trim())).map(invoice => (
                         <Card key={invoice.id}><CardContent className="flex flex-wrap items-center justify-between gap-4 pt-5">
-                          <div className="space-y-2"><h3 className="font-semibold">{invoice.customer?.name || `مشتری ${formatNumber(invoice.customer_id)}`}</h3><p>{formatCurrency(invoice.amount)}</p><p className="text-xs text-muted-foreground">فاکتور {formatNumber(invoice.id)} · {formatDate(`${invoice.due_date}T12:00:00Z`)}</p><Badge variant={invoice.daysLate ? 'warning' : 'neutral'}>{invoice.daysLate ? `${formatNumber(invoice.daysLate)} روز تأخیر` : 'سررسید امروز یا آینده'}</Badge></div>
-                          <div className="flex flex-wrap gap-2"><Link className={linkClass} href={`/invoices#invoice-${invoice.id}`}>بررسی فاکتور</Link><Button variant="outline" size="sm" onClick={() => copyReminder(`سلام ${invoice.customer?.name || ''}، بابت فاکتور شماره ${formatNumber(invoice.id)} به مبلغ ${formatCurrency(invoice.amount)} با سررسید ${formatDate(`${invoice.due_date}T12:00:00Z`)}، لطفاً زمان پرداخت را اعلام کنید. سپاسگزاریم.`)}>کپی متن پیگیری</Button></div>
+                          <div className="space-y-2"><h3 className="font-semibold">{invoice.customer?.name || `مشتری ${formatNumber(invoice.customer_id)}`}</h3><p>{formatCurrency(invoice.amount)}</p><p className="text-xs text-muted-foreground">فاکتور {formatNumber(invoice.id)} · {formatDate(`${invoice.due_date}T12:00:00Z`)}</p><Badge variant={invoice.daysLate ? 'warning' : 'neutral'}>{invoice.daysLate ? `${formatNumber(invoice.daysLate)} روز تأخیر` : 'سررسید امروز یا آینده'}</Badge><p className="text-xs leading-6 text-muted-foreground">دلیل اولویت: {(priorityOf(invoice.id)?.reasons ?? []).join(' · ')}</p></div>
+                          <div className="flex flex-wrap gap-2"><Link className={linkClass} href={`/invoices#invoice-${invoice.id}`}>بررسی فاکتور</Link><Button variant="outline" size="sm" onClick={() => copyReminder(followUpMessage(data!, invoice.id, today))}>کپی متن پیگیری</Button></div>
                         </CardContent></Card>
                       ))}
                       {!queue.some(i => (bucket === 'all' || i.bucket === bucket) && (i.customer?.name ?? '').includes(query.trim())) && <p className="rounded-2xl border border-dashed border-border p-8">مطالبه‌ای با این فیلتر پیدا نشد. <Link href="/invoices" className="text-accent underline">مدیریت فاکتورها</Link></p>}
@@ -224,10 +234,24 @@ export default function DecisionsPage() {
                     <p className="text-sm leading-7 text-muted-foreground">بر پایه فاکتورهای خودتان؛ نه استعلام صیاد و نه اعتبارسنجی رسمی. نبود سابقه به معنی کم‌ریسک بودن نیست.</p>
                     {exposures.length === 0 && <Link className={linkClass} href="/customers">ثبت اولین مشتری</Link>}
                     {exposures.map(customer => <Card key={customer.id}><CardHeader><div className="flex flex-wrap items-center justify-between gap-2"><CardTitle>{customer.name}</CardTitle><Badge variant={customer.overdue > 0 ? 'warning' : 'neutral'}>{customer.overdue > 0 ? 'مطالبه معوق دارد' : customer.paidCount === 0 ? 'سابقه پرداخت ناکافی' : 'معوق ثبت‌شده ندارد'}</Badge></div></CardHeader><CardContent>
+                      {(() => { const reliability = paymentReliability(data!, today, customer.id); return <dl className="mb-4 grid gap-4 text-sm sm:grid-cols-3"><div><dt className="text-muted-foreground">تسویه به‌موقع</dt><dd className="mt-2 font-semibold">{reliability.onTimeRate === null ? 'داده کافی نیست' : `${formatNumber(Math.round(reliability.onTimeRate * 100))}٪ از ${formatNumber(reliability.sampleSize)} فاکتور`}</dd></div><div><dt className="text-muted-foreground">چک برگشتی</dt><dd className="mt-2 font-semibold">{reliability.settledChecks === 0 ? 'چکی ثبت نشده' : `${formatNumber(reliability.bouncedChecks)} از ${formatNumber(reliability.settledChecks)} چک تسویه‌شده`}</dd></div><div><dt className="text-muted-foreground">انقضای سابقه</dt><dd className="mt-2 font-semibold">{reliability.hasHistory ? 'بر پایه تاریخ واقعی' : 'بدون سابقه؛ نامشخص'}</dd></div></dl> })()}
                       <dl className="grid gap-4 text-sm sm:grid-cols-3"><div><dt className="text-muted-foreground">مانده مطالبات</dt><dd className="mt-2 font-semibold">{formatCurrency(customer.openAmount)}</dd></div><div><dt className="text-muted-foreground">از این مبلغ، معوق</dt><dd className="mt-2 font-semibold">{formatCurrency(customer.overdue)}</dd></div><div><dt className="text-muted-foreground">میانگین تأخیر تسویه</dt><dd className="mt-2 font-semibold">{customer.averageDelay === null ? 'داده کافی نیست' : `${formatNumber(customer.averageDelay)} روز / ${formatNumber(customer.paidCount)} فاکتور`}</dd></div></dl>
                       <Link href={`/customers#customer-${customer.id}`} className="mt-4 inline-block text-sm text-accent underline">بررسی پرونده و اطلاعات تماس</Link>
                     </CardContent></Card>)}
                   </div>
+                )}
+
+                {active === 'weeks' && (
+                  <Card><CardHeader><CardTitle>نمای هفتگی ۱۳ هفته</CardTitle><CardDescription>مانده پایان هر هفته پس از کسر چک‌های صادره و افزودن چک‌های دریافتی در جریان و فاکتورهای سررسیددار؛ درآمد یا هزینه‌ای حدس زده نمی‌شود.</CardDescription></CardHeader><CardContent className="space-y-4">
+                    {weeks.length === 0 ? <p role="status" className="rounded-xl border border-dashed border-border p-6 text-sm">برای این نما یک حساب نقدی تومانی لازم است؛ حساب ارزی محاسبه را متوقف می‌کند.</p> : <>
+                      <div className="overflow-auto rounded-xl border border-border" role="region" aria-label="جدول هفتگی" tabIndex={0}>
+                        <table className="financial-table text-sm"><caption className="sr-only">پیش‌بینی هفتگی نقدینگی به تومان</caption><thead><tr>{['هفته', 'ورودی', 'خروجی', 'مانده پایان هفته'].map(label => <th key={label} scope="col">{label}</th>)}</tr></thead><tbody>
+                          {weeks.map((week, index) => <tr key={week.weekStart}><td>هفته {formatNumber(index + 1)}<span className="block text-xs text-muted-foreground">{formatDate(`${week.weekStart}T12:00:00Z`)}</span></td><td>{formatCurrency(week.inflow)}</td><td>{formatCurrency(week.outflow)}</td><td className={week.closing < 0 ? 'font-semibold text-destructive' : 'font-semibold'}>{formatCurrency(week.closing)}{week.closing < 0 && <span className="block text-xs">کسری</span>}</td></tr>)}
+                        </tbody></table>
+                      </div>
+                      <p className="text-sm leading-7 text-muted-foreground">فقط رویدادهای ثبت‌شده وارد شده‌اند. چک صادره معوق در هفته اول رزرو می‌شود. فاکتور معوق در هفته اول به‌عنوان ورودی فرض نشده است؛ برای سناریوی وصول به «میز تصمیم» و «آزمایش تصمیم» مراجعه کنید. این نمای جریان نقدی نیست پیش‌بینی تضمینی.</p>
+                    </>}
+                  </CardContent></Card>
                 )}
 
                 {active === 'readiness' && (

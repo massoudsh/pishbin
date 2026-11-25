@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "test:regression": "node --import tsx --test lib/__tests__/auth-onboarding.test.ts lib/__tests__/protected-route.test.ts lib/__tests__/decision-center.test.ts lib/__tests__/settlement-api.test.ts lib/__tests__/account-pagination.test.ts lib/__tests__/ui-backlog.test.ts",
+    "test:regression": "node --import tsx --test lib/__tests__/auth-onboarding.test.ts lib/__tests__/protected-route.test.ts lib/__tests__/decision-center.test.ts lib/__tests__/settlement-api.test.ts lib/__tests__/account-pagination.test.ts lib/__tests__/ui-backlog.test.ts lib/__tests__/insights.test.ts",
     "typecheck": "tsc --noEmit --incremental false",
     "prisma:generate": "prisma generate",
     "prisma:push": "prisma db push",
