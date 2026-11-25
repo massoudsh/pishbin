@@ -2,17 +2,46 @@
 Configuration management for the application.
 Handles environment variables and application settings.
 """
-from pydantic import field_validator, model_validator
+import json
+from typing import Any, Optional
+
+from pydantic import model_validator
 from pydantic_settings import BaseSettings
-from typing import Optional, Union
 
 
-def _parse_cors_origins(v: Union[str, list]) -> list[str]:
-    if isinstance(v, list):
-        return v
-    if isinstance(v, str):
-        return [x.strip() for x in v.split(",") if x.strip()]
-    return ["http://localhost:3000", "http://localhost:3001"]
+DEFAULT_CORS_ORIGINS = [
+    "http://localhost:3000",
+    "http://localhost:3001",
+    "http://localhost:3002",
+    "http://localhost:3003",
+    "http://127.0.0.1:3000",
+    "http://127.0.0.1:3001",
+    "http://127.0.0.1:3002",
+    "http://127.0.0.1:3003",
+]
+
+
+def _parse_cors_origins(value: Any) -> list[str]:
+    """Accept a comma-separated string, a JSON array, or an already-parsed list.
+
+    CORS_ORIGINS is declared as a plain string so pydantic-settings never tries
+    to JSON-decode the whole env value before we can parse it; a bare
+    ``http://host`` used to crash the app at import time.
+    """
+    if value is None:
+        return list(DEFAULT_CORS_ORIGINS)
+    if isinstance(value, (list, tuple)):
+        return [str(item).strip() for item in value if str(item).strip()]
+    text = str(value).strip()
+    if not text:
+        return list(DEFAULT_CORS_ORIGINS)
+    if text.startswith("["):
+        try:
+            parsed = json.loads(text)
+        except json.JSONDecodeError:
+            return list(DEFAULT_CORS_ORIGINS)
+        return _parse_cors_origins(parsed)
+    return [origin.strip() for origin in text.split(",") if origin.strip()]
 
 
 class Settings(BaseSettings):
@@ -37,17 +66,9 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
     
-    # CORS: set CORS_ORIGINS in production (comma-separated: https://app.com,https://www.app.com)
-    CORS_ORIGINS: list[str] = [
-        "http://localhost:3000",
-        "http://localhost:3001",
-        "http://localhost:3002",
-        "http://localhost:3003",
-        "http://127.0.0.1:3000",
-        "http://127.0.0.1:3001",
-        "http://127.0.0.1:3002",
-        "http://127.0.0.1:3003",
-    ]
+    # CORS: comma-separated origins or a JSON array
+    # (e.g. CORS_ORIGINS=https://app.com,https://www.app.com)
+    CORS_ORIGINS: str = ",".join(DEFAULT_CORS_ORIGINS)
     
     # API
     API_V1_STR: str = "/api/v1"
@@ -87,13 +108,10 @@ class Settings(BaseSettings):
             )
         return self
 
-    @field_validator("CORS_ORIGINS", mode="before")
-    @classmethod
-    def parse_cors_origins(cls, v: Union[str, list]) -> list[str]:
-        return _parse_cors_origins(v) if v is not None else [
-        "http://localhost:3000", "http://localhost:3001", "http://localhost:3002", "http://localhost:3003",
-        "http://127.0.0.1:3000", "http://127.0.0.1:3001", "http://127.0.0.1:3002", "http://127.0.0.1:3003",
-    ]
+    @property
+    def cors_origins(self) -> list[str]:
+        """Allowed browser origins, parsed from CORS_ORIGINS."""
+        return _parse_cors_origins(self.CORS_ORIGINS)
     
     class Config:
         env_file = ".env"
